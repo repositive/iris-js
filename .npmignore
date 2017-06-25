@@ -1,0 +1,7 @@
+.npmignore
+src
+.nyc_output
+coverage
+tsconfig.json
+tslint.json
+circle.yml

@@ -1,0 +1,55 @@
+{
+  "name": "@repositive/iris",
+  "version": "0.0.1",
+  "description": "",
+  "main": "dist/main/index.js",
+  "types": "dist/main/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "precommit": "npm run lint",
+    "start": "node dist/main",
+    "startDev": "nodemon --watch src/main --watch package.json -e ts,json -q -x 'rm -fr dist && echo \"\\n============\\nCOMPILING...\\n============\\n\\n\" && tsc --outDir dist || return 0 && node dist/main/index.js'",
+    "make": "rm -fr dist && tsc",
+    "lint": "tslint -c tslint.json src/**/*.ts",
+    "test": "nyc tape $(find dist -name '*.js') | tap-spec",
+    "coverage": "nyc check-coverage --lines 80 --functions 80 --branches 80"
+  },
+  "nyc": {
+    "extension": [
+      ".ts",
+      ".tsx"
+    ],
+    "exclude": [
+      "**/*.spec.js",
+      "**/*.d.ts"
+    ]
+  },
+  "author": "Repositive Team",
+  "license": "MIT",
+  "keywords": [
+    "@repositive/iris",
+    "service"
+  ],
+  "dependencies": {
+    "amqplib": "0.5.1",
+    "bluebird": "3.5.0",
+    "uuid": "3.1.0"
+  },
+  "devDependencies": {
+    "@repositive/typescript": "1.1.2",
+    "@types/amqplib": "0.5.3",
+    "@types/bluebird": "3.5.5",
+    "@types/node": "8.0.0",
+    "@types/sinon": "2.3.1",
+    "@types/tape": "4.2.30",
+    "@types/uuid": "3.0.0",
+    "husky": "0.13.4",
+    "nodemon": "1.11.0",
+    "nyc": "11.0.2",
+    "sinon": "2.3.5",
+    "tap-spec": "4.1.1",
+    "tape": "4.6.3",
+    "tslint": "5.4.3",
+    "typescript": "2.3.4"
+  }
+}
