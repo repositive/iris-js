@@ -2,18 +2,25 @@ import {Pattern} from './types';
 import {LibOptions} from './types';
 import {Channel, Message} from 'amqplib';
 import {all} from 'bluebird';
+import {v4} from 'uuid';
+
+export interface AddOptions {
+  queue_namespace?: string;
+}
+
+export const defaultAddOptions = {};
 
 export default async function setupAdd(ch: Channel, options: LibOptions) {
   const exchange = options.exchange; // Request exchange
-  const queue = options.queue; // The base queue for the service
 
-  await all([
-    ch.assertExchange(exchange, 'topic', {durable: true})
-  ]);
+  await ch.assertExchange(exchange, 'topic', {durable: true});
 
-  return async function add<I, R>(pattern: string, implementation: (msg: Buffer) => Promise<R>): Promise<void> {
+  return async function add<I, R>(pattern: string, implementation: (msg: Buffer) => Promise<R>, opts: AddOptions = {}): Promise<void> {
+    const _opts = Object.assign({}, opts, defaultAddOptions);
+
+    const queue = _opts.queue_namespace || v4();
     //TODO Match for invalid patterns.
-    const queueName = `${queue}-${pattern}`;
+    const queueName = `${pattern}-${queue}`;
     await all([
       ch.assertQueue(queueName),
       ch.prefetch(1),

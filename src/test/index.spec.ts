@@ -33,7 +33,7 @@ test('Tests setupp funcion' , (t: Test) => {
   });
 
 
-  indexModule.default({url: 'urls', exchange: 'ex', queue: 'q'})
+  indexModule.default({url: 'urls', exchange: 'ex'})
     .then((result: any) => {
       t.ok(addModule.default.calledOnce, 'Sets up add function');
       t.equal(result.add, add, 'Returns an initialized add function');

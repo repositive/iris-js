@@ -1,5 +1,6 @@
 import {connect} from 'amqplib';
 import {LibOptions} from './types';
+import {AddOptions} from './add';
 import setupAdd from './add';
 import {ActOptions} from './act';
 import setupAct from './act';
