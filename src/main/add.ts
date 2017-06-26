@@ -28,7 +28,7 @@ export default async function setupAdd(ch: Channel, options: LibOptions) {
       ch.consume(
         queueName,
         (msg: Message) => {
-          implementation(msg.content)
+          return implementation(msg.content)
             .then(response => {
               if (msg.properties && msg.properties.replyTo && msg.properties.correlationId) {
                 return ch.sendToQueue(
