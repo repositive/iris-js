@@ -15,7 +15,7 @@ export default async function setupAdd(ch: Channel, options: LibOptions) {
 
   await ch.assertExchange(exchange, 'topic', {durable: true});
 
-  return async function add<I, R>(pattern: string, implementation: (msg: Buffer) => Promise<R>, opts: AddOptions = {}): Promise<void> {
+  return async function add(pattern: string, implementation: (msg: Buffer) => Promise<Buffer>, opts: AddOptions = {}): Promise<void> {
     const _opts = Object.assign({}, opts, defaultAddOptions);
 
     const queue = _opts.queue_namespace || v4();
@@ -33,7 +33,7 @@ export default async function setupAdd(ch: Channel, options: LibOptions) {
               if (msg.properties && msg.properties.replyTo && msg.properties.correlationId) {
                 return ch.sendToQueue(
                   msg.properties.replyTo,
-                  Buffer.from(JSON.stringify(response)),
+                  response,
                   {correlationId: msg.properties.correlationId}
                 );
               }
