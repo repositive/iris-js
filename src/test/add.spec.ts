@@ -82,7 +82,27 @@ test('Everything goes well in add function', (t: Test) => {
     t.equals(ch.ack.getCall(0).args[0], message, 'ACK is being called with the original message');
   }
 
-  test().then(() => {
-    t.end();
-  });
+  test().then(() => t.end());
+});
+
+test('Not everything goes well in add function', (t: Test) => {
+  const ch = mockChannel();
+  const expectedResponse = Buffer.from('{}');
+
+  async function test() {
+    const pattern = 'simple.test.fails';
+    const add = await setupAdd(ch, libOptions);
+    const failImp = () => Promise.reject({});
+    await add(pattern, failImp);
+
+    const consumer = ch.consume.getCall(0).args[1];
+
+    const message = fakeMessage();
+    await consumer(message);
+    t.ok(ch.ack.calledOnce, 'ACK is being called');
+    t.equals(ch.ack.getCall(0).args[0], message, 'ACK is being called with the original message');
+
+  }
+
+  test().then(() => t.end());
 });
