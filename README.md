@@ -21,7 +21,7 @@ Iris will provides operations to ask and receive information without the need of
 
 <p align="center">
     <img src="https://github.com/repositive/iris-js/blob/mvp/docs/imgs/abstractIris.png" alt="Abstraction of Iris"/>
-    <p align="center">What a services see.</p>
+    <p align="center">What a services sees.</p>
 </p>
 <p align="center">
     <img src="https://github.com/repositive/iris-js/blob/mvp/docs/imgs/Iris.png" alt="Iris arq"/>
