@@ -24,7 +24,7 @@ export class TimeoutError extends Error {
 export default async function setupAct(ch: Channel, options: LibOptions) {
   const exchange = options.exchange;
 
-  return function act(pattern: string, opts: ActOptions = {}): ((payload: Buffer) => Promise<Buffer>) {
+  return function act(pattern: string, opts: ActOptions = {}): ((payload: Buffer) => Promise<Buffer | Buffer[]>) {
     const _opts = Object.assign({}, opts, defaultOptions);
     return async function _act(payload: Buffer) {
       const q = await ch.assertQueue('', {exclusive: true});
@@ -34,7 +34,7 @@ export default async function setupAct(ch: Channel, options: LibOptions) {
         replyTo: q.queue
       });
 
-      return new Promise((resolve, reject) => {
+      return new Promise<Buffer | Buffer[]>((resolve, reject) => {
         const responses: Buffer[] = [];
 
         const timeout = setTimeout(
