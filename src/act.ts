@@ -1,15 +1,15 @@
-import {LibOptions, Pattern} from './types';
+import { SerializationOpts } from './index';
 import { all } from 'bluebird';
 import {Channel, Message} from 'amqplib';
 import {v4} from 'uuid';
 
-export interface ActOptions {
+export interface ActOpts {
   sync?: boolean;
   timeout?: number;
   multi?: boolean;
 }
 
-export const defaultOptions: ActOptions = {
+export const defaultOptions: ActOpts = {
   sync: true,
   timeout: 100,
   multi: false
@@ -21,10 +21,16 @@ export class TimeoutError extends Error {
   }
 }
 
-export default async function setupAct(ch: Channel, options: LibOptions) {
-  const exchange = options.exchange;
+export interface SetupActOpts<S> {
+  ch: Channel;
+  exchange: string;
+  serialization: SerializationOpts<S>;
+}
 
-  return function act(pattern: string, opts: ActOptions = {}): ((payload: Buffer) => Promise<Buffer | Buffer[]>) {
+export async function setupAct<S>(args: SetupActOpts<S>) {
+  const { exchange, ch } = args;
+
+  return function act(pattern: string, opts: ActOpts = {}): ((payload: Buffer) => Promise<Buffer | Buffer[]>) {
     const _opts = Object.assign({}, opts, defaultOptions);
     return async function _act(payload: Buffer) {
       const q = await ch.assertQueue('', {exclusive: true});

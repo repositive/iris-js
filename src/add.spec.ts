@@ -2,7 +2,8 @@ import * as test from 'tape';
 import {Test} from 'tape';
 import * as proxy from 'proxyquire';
 import { stub, spy } from 'sinon';
-import setupAdd from './add';
+import { setupAdd } from './add';
+import {Channel} from 'amqplib';
 
 function mockChannel(): any {
   return {
@@ -13,6 +14,13 @@ function mockChannel(): any {
     consume: spy(),
     sendToQueue: spy(),
     ack: spy()
+  };
+}
+
+function mockSerialization() {
+  return {
+    parse: spy(),
+    serialize: spy()
   };
 }
 
@@ -28,18 +36,21 @@ function fakeMessage() {
 
 const libOptions = {
   url: 'amqp://rabbit',
-  exchange: 'rpc_exchange'
+  exchange: 'rpc_exchange',
+  queue: 'test'
 };
 
 test('Everything goes well in add function', (t: Test) => {
 
   const ch = mockChannel();
+  const serialization = mockSerialization();
 
   const expectedResponse = Buffer.from('{}');
   const implementation = stub().returns(Promise.resolve(expectedResponse));
 
   async function test() {
-    const add = await setupAdd(ch, libOptions);
+    const args = { ...libOptions, serialization, ch };
+    const add = await setupAdd(args);
 
     t.equals(typeof add, 'function', 'setupAdd returns the add function');
 
@@ -50,7 +61,7 @@ test('Everything goes well in add function', (t: Test) => {
     t.equals(exCall.args[1], 'topic', 'The exchange provided is of type "topic"');
 
     const pattern = 'simple.test.works';
-    await add(pattern, implementation);
+    await add({pattern, implementation});
 
     t.ok(ch.assertQueue.calledOnce, 'A new queue is created for the functionality');
     t.ok(ch.assertQueue.getCall(0).args[0].indexOf(pattern) === 0, 'The queue name contains the name of the pattern');
@@ -87,13 +98,14 @@ test('Everything goes well in add function', (t: Test) => {
 
 test('Not everything goes well in add function', (t: Test) => {
   const ch = mockChannel();
+  const serialization = mockSerialization();
   const expectedResponse = Buffer.from('{}');
   const errorResponse = Buffer.from('{"error":"Unexpected error"}');
   async function test() {
     const pattern = 'simple.test.fails';
-    const add = await setupAdd(ch, libOptions);
-    const failImp = () => Promise.reject({});
-    await add(pattern, failImp);
+    const add = await setupAdd({...libOptions, ch, serialization});
+    const implementation = () => Promise.reject({});
+    await add({pattern, implementation});
 
     const consumer = ch.consume.getCall(0).args[1];
 
@@ -120,13 +132,14 @@ test('Not everything goes well in add function', (t: Test) => {
 
 test('Not everything goes well in add function Custom', (t: Test) => {
   const ch = mockChannel();
+  const serialization = mockSerialization();
   const expectedResponse = Buffer.from('{}');
   const customErrorResponse = Buffer.from('{"error":"Custom"}');
   async function test() {
     const pattern = 'simple.test.fails';
-    const add = await setupAdd(ch, libOptions);
-    const failCustomImp = () => Promise.reject(new Error('Custom'));
-    await add(pattern, failCustomImp);
+    const add = await setupAdd({ch, serialization, ...libOptions});
+    const implementation = () => Promise.reject(new Error('Custom'));
+    await add({pattern, implementation});
 
     const consumer = ch.consume.getCall(0).args[1];
     const message = fakeMessage();
