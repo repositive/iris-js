@@ -2,7 +2,7 @@ import * as test from 'tape';
 import {Test} from 'tape';
 import * as proxy from 'proxyquire';
 import { stub, spy } from 'sinon';
-import setupAdd from '../main/add';
+import setupAdd from './add';
 
 function mockChannel(): any {
   return {
