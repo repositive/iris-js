@@ -1,28 +1,30 @@
-import {Pattern} from './types';
-import {LibOptions} from './types';
+import { SerializationOpts } from './index';
 import {Channel, Message} from 'amqplib';
 import {all} from 'bluebird';
-import {v4} from 'uuid';
 
-export interface AddOptions {
-  queue_namespace?: string;
+export interface SetupAddOpts<T> {
+  ch: Channel;
+  serialization: SerializationOpts<T>;
+  exchange: string;
+  queue: string;
 }
 
-export const defaultAddOptions = {};
-
-export default async function setupAdd(ch: Channel, options: LibOptions) {
-  const exchange = options.exchange; // Request exchange
-
+export async function setupAdd<S>(args: SetupAddOpts<S>) {
+  const { exchange, ch, queue } = args; // Request exchange
   await ch.assertExchange(exchange, 'topic', {durable: true});
 
-  return async function add(pattern: string, implementation: (msg: Buffer) => Promise<Buffer>, opts: AddOptions = {}): Promise<void> {
-    const _opts = Object.assign({}, opts, defaultAddOptions);
+  return async function add({
+    pattern,
+    implementation
+  }: {
+    pattern: string,
+    implementation: (msg: Buffer) => Promise<Buffer>
+  }): Promise<void> {
 
-    const queue = _opts.queue_namespace || v4();
     //TODO Match for invalid patterns.
     const queueName = `${pattern}-${queue}`;
     const errorName = `${pattern}-${queue}-error`;
-    await all([
+    return await all([
       ch.assertQueue(queueName),
       ch.prefetch(1),
       ch.bindQueue(queueName, exchange, pattern),
@@ -59,6 +61,6 @@ export default async function setupAdd(ch: Channel, options: LibOptions) {
         },
         {noAck: false}
       )
-    ]);
+    ]).then(_ => undefined);
   };
 }
