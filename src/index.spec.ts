@@ -26,7 +26,7 @@ test('Tests setupp funcion' , (t: Test) => {
   const addModule = setupAdd(add);
   const act = spy();
   const actModule = setupAct(act);
-  const indexModule = proxy('../main/index', {
+  const indexModule = proxy('./index', {
     'amqplib': amqplib,
     './add': addModule,
     './act': actModule
