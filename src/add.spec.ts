@@ -19,8 +19,8 @@ function mockChannel(): any {
 
 function mockSerialization() {
   return {
-    parse: spy(),
-    serialize: spy()
+    parse: stub().returns({}),
+    serialize: stub().returns(Buffer.from('{}'))
   };
 }
 
@@ -43,13 +43,12 @@ const libOptions = {
 test('Everything goes well in add function', (t: Test) => {
 
   const ch = mockChannel();
-  const serialization = mockSerialization();
 
   const expectedResponse = Buffer.from('{}');
-  const implementation = stub().returns(Promise.resolve(expectedResponse));
+  const implementation = stub().returns(Promise.resolve(JSON.parse(expectedResponse.toString())));
 
   async function test() {
-    const args = { ...libOptions, serialization, ch };
+    const args = { ...libOptions, ch };
     const add = await setupAdd(args);
 
     t.equals(typeof add, 'function', 'setupAdd returns the add function');
@@ -81,12 +80,12 @@ test('Everything goes well in add function', (t: Test) => {
     await consumer(message);
 
     t.ok(implementation.calledOnce, 'The implemented function is called on message');
-    t.equals(implementation.getCall(0).args[0], message.content, 'The implementation is called with the message content');
+    t.deepEquals(implementation.getCall(0).args[0], JSON.parse(message.content.toString()), 'The implementation is called with the message content');
 
     t.ok(ch.sendToQueue.calledOnce, 'The library pipes the response to request service');
     const sendCall = ch.sendToQueue.getCall(0);
     t.equals(sendCall.args[0], message.properties.replyTo, 'It replies to the requested queue');
-    t.equals(sendCall.args[1], expectedResponse, 'It puts to the queue the response from the implementation');
+    t.deepEquals(sendCall.args[1], expectedResponse, 'It puts to the queue the response from the implementation');
     t.equals(sendCall.args[2].correlationId, message.properties.correlationId, 'It adds the correlation id received from the message');
 
     t.ok(ch.ack.calledOnce, 'ACK is being called');
@@ -98,12 +97,11 @@ test('Everything goes well in add function', (t: Test) => {
 
 test('Not everything goes well in add function', (t: Test) => {
   const ch = mockChannel();
-  const serialization = mockSerialization();
   const expectedResponse = Buffer.from('{}');
   const errorResponse = Buffer.from('{"error":"Unexpected error"}');
   async function test() {
     const pattern = 'simple.test.fails';
-    const add = await setupAdd({...libOptions, ch, serialization});
+    const add = await setupAdd({...libOptions, ch });
     const implementation = () => Promise.reject({});
     await add({pattern, implementation});
 
@@ -132,12 +130,11 @@ test('Not everything goes well in add function', (t: Test) => {
 
 test('Not everything goes well in add function Custom', (t: Test) => {
   const ch = mockChannel();
-  const serialization = mockSerialization();
   const expectedResponse = Buffer.from('{}');
   const customErrorResponse = Buffer.from('{"error":"Custom"}');
   async function test() {
     const pattern = 'simple.test.fails';
-    const add = await setupAdd({ch, serialization, ...libOptions});
+    const add = await setupAdd({ ...libOptions, ch});
     const implementation = () => Promise.reject(new Error('Custom'));
     await add({pattern, implementation});
 

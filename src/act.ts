@@ -1,19 +1,13 @@
-import { SerializationOpts } from './index';
+import { SerializationOpts } from './serialization';
+import serialization from './serialization';
 import { all } from 'bluebird';
 import {Channel, Message} from 'amqplib';
 import {v4} from 'uuid';
 
 export interface ActOpts {
-  sync?: boolean;
+  pattern: string;
   timeout?: number;
-  multi?: boolean;
 }
-
-export const defaultOptions: ActOpts = {
-  sync: true,
-  timeout: 100,
-  multi: false
-};
 
 export class TimeoutError extends Error {
   constructor(msg: string) {
@@ -24,48 +18,45 @@ export class TimeoutError extends Error {
 export interface SetupActOpts<S> {
   ch: Channel;
   exchange: string;
-  serialization: SerializationOpts<S>;
+  _serialization?: SerializationOpts<S>;
 }
 
-export async function setupAct<S>(args: SetupActOpts<S>) {
-  const { exchange, ch } = args;
+export async function setupAct<S>({
+  ch,
+  exchange,
+  _serialization = serialization
+}: SetupActOpts<S>) {
 
-  return function act(pattern: string, opts: ActOpts = {}): ((payload: Buffer) => Promise<Buffer | Buffer[]>) {
-    const _opts = Object.assign({}, opts, defaultOptions);
-    return async function _act(payload: Buffer) {
+  return function act({
+    pattern,
+    timeout = 100
+  }: ActOpts): ((payload: S) => Promise<S>) {
+    return async function _act(payload: S) {
       const q = await ch.assertQueue('', {exclusive: true});
       const correlation  = v4();
-      ch.publish(exchange, pattern, payload, {
+      const content = serialization.serialize(payload);
+      ch.publish(exchange, pattern, content, {
         correlationId: correlation,
         replyTo: q.queue
       });
 
-      return new Promise<Buffer | Buffer[]>((resolve, reject) => {
-        const responses: Buffer[] = [];
+      return new Promise<S>((resolve, reject) => {
 
-        const timeout = setTimeout(
+        const time = setTimeout(
           () => {
             ch.deleteQueue(q.queue)
               .then(() => {
-                if (_opts.multi) {
-                  resolve(responses);
-                } else {
-                  reject(new Error('Timeout'));
-                }
+                reject(new Error('Timeout'));
               })
               .catch(reject);
           },
-          _opts.timeout
+          timeout
         );
 
         ch.consume(q.queue, (msg?: Message) => {
           if (msg && msg.properties.correlationId === correlation) {
-            if (!_opts.multi) {
-              clearTimeout(timeout);
-              resolve(msg.content);
-            } else {
-              responses.push(msg.content);
-            }
+            clearTimeout(time);
+            resolve(serialization.parse(msg.content));
             ch.ack(msg);
           }
           //TODO: Move msg to error queue
