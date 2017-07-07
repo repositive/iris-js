@@ -2,7 +2,7 @@
 import irisSetup from '..';
 
 const config = {
-  url: 'amqp://repositive:repositive@localhost:5672',
+  url: 'amqp://guest:guest@localhost:5672',
   exchange: 'test'
 };
 
