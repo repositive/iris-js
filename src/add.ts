@@ -6,26 +6,26 @@ import {all} from 'bluebird';
 export interface SetupAddOpts<S> {
   ch: Channel;
   exchange: string;
-  namespace?: string;
   _serialization?: SerializationOpts<S>;
 }
 
 export interface AddOpts<M, R> {
   pattern: string;
   implementation: (msg: M) => Promise<R>;
+  namespace?: string;
 }
 
 export async function setupAdd<S, M extends S, R extends S>({
   exchange,
   ch,
-  namespace,
   _serialization = serialization
 }: SetupAddOpts<S>) {
   await ch.assertExchange(exchange, 'topic', {durable: true});
 
   return async function add({
     pattern,
-    implementation
+    implementation,
+    namespace
   }: AddOpts<M, R>): Promise<void> {
 
     //TODO Match for invalid patterns.

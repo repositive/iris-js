@@ -13,9 +13,10 @@ export interface LibOpts<S> {
   _setupAct?: typeof setupAct;
   _setupAdd?: typeof setupAdd;
   _connect?: typeof connect;
+  _restartConnection?: typeof restartConnection;
 }
 
-function restartConnection<S>({
+export function restartConnection<S>({
   opts,
   timeout = 100,
   attempt = 0,
@@ -46,7 +47,8 @@ export default async function setup<S, M extends S, R extends S>({
   _serialization = serialization,
   _setupAct = setupAct,
   _setupAdd = setupAdd,
-  _connect = connect
+  _connect = connect,
+  _restartConnection = restartConnection
 }: LibOpts<S>) {
 
   const common_options = {durable: true, noAck: true};
@@ -66,11 +68,12 @@ export default async function setup<S, M extends S, R extends S>({
     errored = true;
     console.warn(`Connection errored...`);
 
-    restartConnection({opts: {
+    _restartConnection({opts: {
       url, exchange,
       additions,
       _serialization, _setupAct,
-      _setupAdd, _connect
+      _setupAdd, _connect,
+      _restartConnection
     }}).then((result: any) => {
       operations[0] = result.act;
       operations[1] = result.add;
@@ -81,6 +84,7 @@ export default async function setup<S, M extends S, R extends S>({
 
   conn.on('close', onError);
 
+  // If the connection failed there may be additions from previous connection, so add them again.
   await Promise.all(Object.keys(additions).map(k => {
     const addition = additions[k];
     return operations[1](addition);
@@ -88,8 +92,9 @@ export default async function setup<S, M extends S, R extends S>({
 
   return {
     async add(opts: AddOpts<M, R>): Promise<void> {
-      if (!additions[opts.pattern]) {
-        additions[opts.pattern] = opts;
+      const id = `${opts.pattern}-${opts.namespace || ''}`;
+      if (!additions[id]) {
+        additions[id] = opts;
       }
       if (errored) {
         return Promise.resolve();
