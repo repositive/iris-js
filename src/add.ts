@@ -6,7 +6,7 @@ import {all} from 'bluebird';
 export interface SetupAddOpts<S> {
   ch: Channel;
   exchange: string;
-  queue: string;
+  namespace?: string;
   _serialization?: SerializationOpts<S>;
 }
 
@@ -18,7 +18,7 @@ export interface AddOpts<M, R> {
 export async function setupAdd<S, M extends S, R extends S>({
   exchange,
   ch,
-  queue,
+  namespace,
   _serialization = serialization
 }: SetupAddOpts<S>) {
   await ch.assertExchange(exchange, 'topic', {durable: true});
@@ -29,8 +29,8 @@ export async function setupAdd<S, M extends S, R extends S>({
   }: AddOpts<M, R>): Promise<void> {
 
     //TODO Match for invalid patterns.
-    const queueName = `${pattern}-${queue}`;
-    const errorName = `${pattern}-${queue}-error`;
+    const queueName = `${pattern}${namespace ? `-${namespace}` : ''}`;
+    const errorName = `${pattern}${namespace ? `-${namespace}` : ''}-error`;
     return await all([
       ch.assertQueue(queueName),
       ch.prefetch(1),

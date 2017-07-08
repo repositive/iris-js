@@ -8,7 +8,7 @@ import serialization from './serialization';
 export interface LibOpts<S> {
   url: string;
   exchange: string;
-  queue?: string;
+  additions?: {[k: string]: AddOpts<any, any>};
   _serialization?: SerializationOpts<S>;
   _setupAct?: typeof setupAct;
   _setupAdd?: typeof setupAdd;
@@ -27,7 +27,7 @@ function restartConnection<S>({
   _setup?: typeof setup
 }) {
   return new Promise((resolve, reject) => {
-    console.log(`Retrying connection on ${attempt * timeout}ms`);
+    console.log(`Retrying connection in ${attempt * timeout}ms`);
     setTimeout(
       () => {
         resolve(_setup(opts).catch((innerErr: Error) => {
@@ -42,7 +42,7 @@ function restartConnection<S>({
 export default async function setup<S, M extends S, R extends S>({
   url,
   exchange,
-  queue = v4(),
+  additions = {},
   _serialization = serialization,
   _setupAct = setupAct,
   _setupAdd = setupAdd,
@@ -64,11 +64,14 @@ export default async function setup<S, M extends S, R extends S>({
 
   function onError(error: Error) {
     errored = true;
-    if (error) {
-      console.error(error);
-    }
+    console.warn(`Connection errored...`);
 
-    restartConnection({opts: {url, exchange, queue, _serialization, _setupAct, _setupAdd, _connect}}).then((result: any) => {
+    restartConnection({opts: {
+      url, exchange,
+      additions,
+      _serialization, _setupAct,
+      _setupAdd, _connect
+    }}).then((result: any) => {
       operations[0] = result.act;
       operations[1] = result.add;
       errored = false;
@@ -78,12 +81,18 @@ export default async function setup<S, M extends S, R extends S>({
 
   conn.on('close', onError);
 
-  // process.once('SIGINT', () => conn.close());
+  await Promise.all(Object.keys(additions).map(k => {
+    const addition = additions[k];
+    return operations[1](addition);
+  }));
 
   return {
     async add(opts: AddOpts<M, R>): Promise<void> {
+      if (!additions[opts.pattern]) {
+        additions[opts.pattern] = opts;
+      }
       if (errored) {
-        return Promise.reject(new Error('Broken pipe'));
+        return Promise.resolve();
       } else {
         return operations[1](opts);
       }

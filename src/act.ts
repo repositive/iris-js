@@ -58,6 +58,7 @@ export async function setupAct<S, M, R>({
         if (msg && msg.properties.correlationId === correlation) {
           clearTimeout(time);
           resolve(serialization.parse(msg.content));
+          ch.deleteQueue(q.queue);
           ch.ack(msg);
         }
         //TODO: Move msg to error queue
