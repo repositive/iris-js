@@ -20,12 +20,18 @@ export interface SetupActOpts<S> {
   ch: Channel;
   exchange: string;
   _serialization?: SerializationOpts<S>;
+  _setTimeout?: typeof setTimeout;
+  _clearTimeout?: typeof clearTimeout;
+  _log?: typeof console;
 }
 
 export async function setupAct<S, M, R>({
   ch,
   exchange,
-  _serialization = serialization
+  _serialization = serialization,
+  _setTimeout = setTimeout,
+  _clearTimeout = clearTimeout,
+  _log = console
 }: SetupActOpts<S>) {
 
   return async function act({
@@ -43,7 +49,7 @@ export async function setupAct<S, M, R>({
 
     return new Promise<R>((resolve, reject) => {
 
-      const time = setTimeout(
+      const time = _setTimeout(
         () => {
           ch.deleteQueue(q.queue)
             .then(() => {
@@ -56,12 +62,13 @@ export async function setupAct<S, M, R>({
 
       ch.consume(q.queue, (msg?: Message) => {
         if (msg && msg.properties.correlationId === correlation) {
-          clearTimeout(time);
+          _clearTimeout(time);
           resolve(serialization.parse(msg.content));
           ch.deleteQueue(q.queue);
           ch.ack(msg);
         }
-        //TODO: Move msg to error queue
+
+        //TODO: If the correlationId does not mach... We should never get here. If that's the case maybe move the msg to error queue?
       });
     });
   };

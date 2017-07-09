@@ -1,6 +1,5 @@
 import * as test from 'tape';
 import {Test} from 'tape';
-import * as proxy from 'proxyquire';
 import { stub, spy } from 'sinon';
 import { setupAdd } from './add';
 import {Channel} from 'amqplib';
