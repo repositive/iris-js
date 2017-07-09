@@ -20,19 +20,22 @@ export function restartConnection<S>({
   opts,
   timeout = 100,
   attempt = 0,
-  _setup = setup
+  _setup = setup,
+  _setTimeout = setTimeout
 }: {
   opts: LibOpts<S>,
   timeout?: number,
   attempt?: number,
-  _setup?: typeof setup
+  _setup?: typeof setup,
+  _setTimeout?: typeof setTimeout
 }) {
   return new Promise((resolve, reject) => {
     console.log(`Retrying connection in ${attempt * timeout}ms`);
-    setTimeout(
+    const _restartConnection = opts._restartConnection || restartConnection;
+    _setTimeout(
       () => {
         resolve(_setup(opts).catch((innerErr: Error) => {
-          return restartConnection({opts, timeout, _setup, attempt: attempt <= 100 ? attempt + 10 : attempt});
+          return _restartConnection({opts, timeout, _setup, attempt: attempt <= 100 ? attempt + 10 : attempt});
         }));
       },
       attempt * timeout
