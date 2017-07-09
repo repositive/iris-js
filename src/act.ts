@@ -11,8 +11,8 @@ export interface ActOpts<M> {
 }
 
 export class TimeoutError extends Error {
-  constructor(msg: string) {
-    super(msg);
+  constructor(msg?: string) {
+    super(msg || 'Timeout');
   }
 }
 
@@ -53,7 +53,7 @@ export async function setupAct<S, M, R>({
         () => {
           ch.deleteQueue(q.queue)
             .then(() => {
-              reject(new Error('Timeout'));
+              reject(new TimeoutError('Timeout'));
             })
             .catch(reject);
         },
@@ -63,8 +63,9 @@ export async function setupAct<S, M, R>({
       ch.consume(q.queue, (msg?: Message) => {
         if (msg && msg.properties.correlationId === correlation) {
           _clearTimeout(time);
-          resolve(serialization.parse(msg.content));
+
           ch.deleteQueue(q.queue);
+          resolve(msg.content && serialization.parse(msg.content));
           ch.ack(msg);
         }
 
