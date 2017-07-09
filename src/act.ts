@@ -6,7 +6,6 @@ import {v4} from 'uuid';
 
 export interface ActOpts {
   pattern: string;
-  multi?: boolean;
   timeout?: number;
 }
 
