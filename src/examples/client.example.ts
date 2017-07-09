@@ -8,14 +8,16 @@ const config = {
 
 irisSetup(config)
   .then(({ act }) => {
-    const sendToTest = act({pattern: 'test'});
 
     async function work() {
-      const result1 = await sendToTest({secret: 'chourizo'});
-      const result2 = await sendToTest({secret: 'pemento'});
-
-      return {result1, result2};
+      const result = await act({pattern: 'test', timeout: 10000, payload: {secret: 'chourizo'}});
+      console.log(result);
     }
 
-    work().then(console.log);
+    setInterval(() => {
+      work().catch((err) => {
+        console.error(err);
+      });
+    }, 3000);
+
   });
