@@ -14,6 +14,7 @@ export interface LibOpts<S> {
   _setupAdd?: typeof setupAdd;
   _connect?: typeof connect;
   _restartConnection?: typeof restartConnection;
+  _log?: typeof console;
 }
 
 export function restartConnection<S>({
@@ -30,8 +31,10 @@ export function restartConnection<S>({
   _setTimeout?: typeof setTimeout
 }) {
   return new Promise((resolve, reject) => {
-    console.log(`Retrying connection in ${attempt * timeout}ms`);
+    const _log = opts._log || console;
     const _restartConnection = opts._restartConnection || restartConnection;
+
+    _log.info(`Retrying connection in ${attempt * timeout}ms`);
     _setTimeout(
       () => {
         resolve(_setup(opts).catch((innerErr: Error) => {
@@ -51,7 +54,8 @@ export default async function setup<S, M extends S, R extends S>({
   _setupAct = setupAct,
   _setupAdd = setupAdd,
   _connect = connect,
-  _restartConnection = restartConnection
+  _restartConnection = restartConnection,
+  _log = console
 }: LibOpts<S>) {
 
   const common_options = {durable: true, noAck: true};
@@ -69,19 +73,23 @@ export default async function setup<S, M extends S, R extends S>({
 
   function onError(error: Error) {
     errored = true;
-    console.warn(`Connection errored...`);
+    _log.warn(`Connection errored...`);
 
     _restartConnection({opts: {
       url, exchange,
       additions,
       _serialization, _setupAct,
       _setupAdd, _connect,
-      _restartConnection
+      _restartConnection, _log
     }}).then((result: any) => {
       operations[0] = result.act;
       operations[1] = result.add;
       errored = false;
-      console.log('Connection recovered');
+      _log.info('Connection recovered');
+    })
+    .catch((err) => {
+      _log.error(err);
+      /* This promise should never reject */
     });
   }
 
