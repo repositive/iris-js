@@ -6,7 +6,7 @@ const config = {
   exchange: 'test'
 };
 
-irisSetup<any>(config)
+irisSetup<any, any, any>(config)
   .then(({ add }) => {
 
     return add({pattern: 'test', async implementation(msg) {
