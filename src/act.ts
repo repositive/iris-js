@@ -63,7 +63,6 @@ export async function setupAct<S, M, R>({
       ch.consume(q.queue, (msg?: Message) => {
         if (msg && msg.properties.correlationId === correlation) {
           _clearTimeout(time);
-
           ch.deleteQueue(q.queue);
           resolve(msg.content && serialization.parse(msg.content));
           ch.ack(msg);
