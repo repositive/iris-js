@@ -1,9 +1,10 @@
 import irisSetup from '..';
 
 const config = {
-  url: 'amqp://repositive:repositive@localhost:5672',
+  url: process.env.RMQ_CHAT_URI,
   exchange: 'test'
 };
+
 
 const readLine = require('readline');
 
@@ -32,7 +33,7 @@ interface Msg {
 }
 
 async function chatListener(msg: any): Promise<any> {
-  console.log(`${msg.author}: ${msg.comment}`);
+  console.log(`\n${msg.author}: ${msg.comment}`);
   return {ack: true};
 }
 
@@ -45,7 +46,7 @@ function prepareNameListener({username}: {username: string}) {
 }
 
 type ChatParams = {
-  act: (params: {pattern: string}) => (payload: any) => Promise<any>,
+  act: (params: {pattern: string, payload: any}) => Promise<any>,
   username: string,
   target: string,
   _question?: typeof question,
@@ -67,18 +68,14 @@ async function chat({
   _cmds = cmds
 }: ChatParams): Promise<void> {
 
-  const talk = act({pattern: `chat.${target}`});
 
   while (true) {
-    const msg = await _question({query: ''});
-    if(/:[a-z]/.test(msg)) {
-      const cmd = msg.substring(1);
+    const answer = await _question({query: `${username}: `});
+    if(/:[a-z]/.test(answer)) {
+      const cmd = answer.substring(1);
       return chat(await _cmds[cmd]({oldParams: {act, username, target, _question}}));
     } else {
-      talk({
-        author: username,
-        comment: msg
-     });
+      await act({pattern: `chat.${target}`, payload: { comment: `${answer}`, author: username}}).catch(console.warn);
     }
   }
 }
