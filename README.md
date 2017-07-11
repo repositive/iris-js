@@ -48,7 +48,7 @@ It would return the functions `{act, add}`
 
 - **Add** an implementation to response to a pattern:  
 `add(pattern, implementation, namespace):AddOptions<M, R>`:  
-  - `pattern`: Pattern to which this service will response.  
+  - `pattern`: Pattern to which this service will respond.  
   - `implementation`: Logic to manage the message to return a proper response.
   - `namespace`: Allows to provide several add implementations for the same pattern with out conflict. That way something acting on that pattern will get the responses of all of the implementations an not just one.  
 
@@ -58,9 +58,9 @@ It will return  `Promise<void>`.
 `act(pattern: string, payload, timeout?): ActOptions<M> `  
   - `pattern`: Pattern to which this service will act on.    
   - `payload`: Message to send as input to the implementation.
-  - `Timeout`: Time after which the wait for answers stops, so all(if any) of the responses gotten till then are receive.  
+  - `Timeout`: If there is no answer after the specified timeout, `act` will reject the promise.  
 
-It will return the proper implementation to get the response needed`Promise<R>`
+It will return the output of the remote implementation as `Promise<R>`
 
 
 ## Internals and Architecture ##
