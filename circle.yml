@@ -8,13 +8,13 @@ dependencies:
   override:
     - npm install
     - npm run make
-  post:
-    - npm run report-coverage
 
 test:
   override:
     - npm run lint
     - npm run test
+  post:
+    - npm run report-coverage
 
 deployment:
   npm:
