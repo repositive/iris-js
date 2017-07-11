@@ -1,14 +1,15 @@
 
 
-repositive/iris
----
+# @repositive/iris
+
+
 # Iris Service #
 
 The Iris service is called after the Greek personification of the rainbow, as a representation a bridge between mortals and gods and a way of communication between them.
 
 * [Purpose](#purpose)  
-* [Usage](#usage)  
 * [Installation](#installation)  
+* [Usage](#usage)  
 * [Internals and Architecture](#internals-and-architecture)
 * [Notes](#notes)  
 
@@ -20,13 +21,17 @@ Iris will provides operations to ask and receive information without the need of
 
 
 <p align="center">
-    <img src="https://github.com/repositive/iris-js/blob/master/docs/imgs/abstractIris.png" alt="Abstraction of Iris"/>
+    <img src="https://github.com/repositive/iris-js/blob/master/docs/imgs/abstractIris.png?raw=true" alt="Abstraction of Iris"/>
     <p align="center">What a services sees.</p>
 </p>
-<p align="center">
-    <img src="https://github.com/repositive/iris-js/blob/master/docs/imgs/Iris.png" alt="Iris arq"/>
-    <p align="center">How It works</p>
-</p>
+
+
+## Installation ##
+
+  - Using npm:
+  ```
+  npm install @repositive/iris
+  ```
 
 
 ## Usage ##
@@ -35,30 +40,37 @@ Steps:
 
 - **Setup** Iris: Provide to iris the basic information for it to work by using the `setup(options: LibOptions)`.  
 
-`export interface LibOptions {url:string; exchange: string;}`                                                                                                                                                                                                                                                                                                                                                                                                                                         
+`export interface LibOptions {url:string; exchange: string;}`  
 `url`: Path to RabbitMQ.  
 `exchange`: Name of the exchange queue.  
 
 It would return the functions `{act, add}`
 
-- **Add** a service as provider using `add(pattern: string, implementation: (msg: Buffer) => Promise<Buffer>, opts: AddOptions = {})`:  
-`pattern`: Pattern to which this service will response.  
-`implementation`: Logic to manage the message to return a proper response.  
-`opts`:  `{queue_namespace?: string;}`                             
+- **Add** an implementation to response to a pattern:  
+`add(pattern, implementation, namespace):AddOptions<M, R>`:  
+  - `pattern`: Pattern to which this service will response.  
+  - `implementation`: Logic to manage the message to return a proper response.
+  - `namespace`: Allows to provide several add implementations for the same pattern with out conflict. That way something acting on that pattern will get the responses of all of the implementations an not just one.  
 
 It will return  `Promise<void>`.
 
-- **Get** responses from services  using `act(pattern: string, opts: ActOptions = {}): `  
-`pattern`: Pattern to which this service will response.    
-`opts`:  `{sync?:boolean, timeout?: number, multi?: boolean}`  
+- **Act** on a pattern to get return from the implementations of all the services that had added one to that pattern for an specific payload:  
+`act(pattern: string, payload, timeout?): ActOptions<M> `  
+  - `pattern`: Pattern to which this service will act on.    
+  - `payload`: Message to send as input to the implementation.
+  - `Timeout`: Time after which the wait for answers stops, so all(if any) of the responses gotten till then are receive.  
 
-It will return the proper implementation to get the response needed`((payload: Buffer) => Promise<Buffer>) `
+It will return the proper implementation to get the response needed`Promise<R>`
 
-
-## Installation ##
 
 ## Internals and Architecture ##
 
+
+
+<p align="center">
+    <img src="https://github.com/repositive/iris-js/blob/master/docs/imgs/Iris.png?raw=true" alt="Iris arq"/>
+    <p align="center">How It works</p>
+</p>
 
 
 ## Notes ##
