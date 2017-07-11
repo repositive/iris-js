@@ -16,6 +16,12 @@ export class TimeoutError extends Error {
   }
 }
 
+export class RPCError extends Error {
+  constructor(msg?: string) {
+    super(msg || 'Remote rejection');
+  }
+}
+
 export interface SetupActOpts<S> {
   ch: Channel;
   exchange: string;
@@ -41,7 +47,7 @@ export async function setupAct<S, M, R>({
   }: ActOpts<M>): Promise<R> {
     const q = await ch.assertQueue('', {exclusive: true});
     const correlation  = v4();
-    const content = serialization.serialize(payload);
+    const content = _serialization.serialize(payload);
     ch.publish(exchange, pattern, content, {
       correlationId: correlation,
       replyTo: q.queue
@@ -63,9 +69,14 @@ export async function setupAct<S, M, R>({
       ch.consume(q.queue, (msg?: Message) => {
         if (msg && msg.properties.correlationId === correlation) {
           _clearTimeout(time);
-
           ch.deleteQueue(q.queue);
-          resolve(msg.content && serialization.parse(msg.content));
+          const code = msg.content[0];
+          const data = msg.content.slice(1);
+          if (code === 0) {
+            resolve(_serialization.parse(data));
+          } else {
+            reject(new RPCError(data.toString()));
+          }
           ch.ack(msg);
         }
 

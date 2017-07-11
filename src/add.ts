@@ -39,33 +39,33 @@ export async function setupAdd<S, M extends S, R extends S>({
         queueName,
         (msg: Message) => {
           const content: M = serialization.parse(msg.content);
+          function onError(err?: Error) {
+            return ch.sendToQueue(
+              msg.properties.replyTo,
+              Buffer.concat([Buffer.from([0x1]), Buffer.from(JSON.stringify({error: (err && err.message) || 'Unexpected error'}))]),
+              {correlationId: msg.properties.correlationId}
+            );
+          }
+
+          try {
           return implementation(content)
             .then((response: R) => {
               if (msg.properties && msg.properties.replyTo && msg.properties.correlationId) {
                 return ch.sendToQueue(
                   msg.properties.replyTo,
-                  serialization.serialize(response),
+                  Buffer.concat([Buffer.from([0x0]), serialization.serialize(response)]),
                   {correlationId: msg.properties.correlationId}
                 );
               }
             })
-            .catch((err?: Error) => {
-              return all([
-                ch.sendToQueue(
-                  errorName,
-                  msg.content,
-                  {correlationId: msg.properties.correlationId}
-                ),
-                ch.sendToQueue(
-                  msg.properties.replyTo,
-                  Buffer.from(JSON.stringify({error: (err && err.message) || 'Unexpected error'})),
-                  {correlationId: msg.properties.correlationId}
-                )
-              ]);
-            })
+            .catch(onError)
             .then(() => {
               ch.ack(msg);
             });
+          } catch(err) {
+            onError(err);
+            ch.ack(msg);
+          }
         },
         {noAck: false}
       )
