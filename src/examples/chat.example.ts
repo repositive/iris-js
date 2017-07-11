@@ -5,7 +5,6 @@ const config = {
   exchange: 'test'
 };
 
-
 const readLine = require('readline');
 
 const rl = readLine.createInterface({
@@ -93,12 +92,12 @@ async function init(
   const username = await _question({query: 'Your username: '});
 
   add({pattern: `chat.${username}`, implementation: chatListener});
-
   add({pattern: `chat.name.${username}`, implementation: prepareNameListener({username})});
 
   const target = await _question({ query: 'Insert user: '});
 
   return chat({act, username, target});
+
 }
 
 init({}).catch(console.error);
