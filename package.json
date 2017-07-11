@@ -15,7 +15,7 @@
     "lint": "tslint -c tslint.json src/**/*.ts",
     "test": "nyc --reporter lcov tape $(find dist -name '*.js' ! -name '*.example.js') | tap-spec",
     "coverage": "nyc check-coverage --lines 80 --functions 80 --branches 80",
-    "report-coverage": "codecov -t $CODECOV_TOKEN"
+    "report-coverage": "cat ./coverage/lcov.info | codecov"
   },
   "nyc": {
     "extension": [
