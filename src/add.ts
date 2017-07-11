@@ -3,32 +3,34 @@ import serialization from './serialization';
 import {Channel, Message} from 'amqplib';
 import {all} from 'bluebird';
 
-export interface SetupAddOpts<T> {
+export interface SetupAddOpts<S> {
   ch: Channel;
   exchange: string;
-  queue: string;
-  _serialization?: SerializationOpts<T>;
+  _serialization?: SerializationOpts<S>;
 }
 
-export async function setupAdd<S>({
+export interface AddOpts<M, R> {
+  pattern: string;
+  implementation: (msg: M) => Promise<R>;
+  namespace?: string;
+}
+
+export async function setupAdd<S, M extends S, R extends S>({
   exchange,
   ch,
-  queue,
   _serialization = serialization
 }: SetupAddOpts<S>) {
   await ch.assertExchange(exchange, 'topic', {durable: true});
 
   return async function add({
     pattern,
-    implementation
-  }: {
-    pattern: string,
-    implementation: (msg: S) => Promise<S>
-  }): Promise<void> {
+    implementation,
+    namespace
+  }: AddOpts<M, R>): Promise<void> {
 
     //TODO Match for invalid patterns.
-    const queueName = `${pattern}-${queue}`;
-    const errorName = `${pattern}-${queue}-error`;
+    const queueName = `${pattern}${namespace ? `-${namespace}` : ''}`;
+    const errorName = `${pattern}${namespace ? `-${namespace}` : ''}-error`;
     return await all([
       ch.assertQueue(queueName),
       ch.prefetch(1),
@@ -36,9 +38,9 @@ export async function setupAdd<S>({
       ch.consume(
         queueName,
         (msg: Message) => {
-          const content: S = serialization.parse(msg.content);
+          const content: M = serialization.parse(msg.content);
           return implementation(content)
-            .then((response: S) => {
+            .then((response: R) => {
               if (msg.properties && msg.properties.replyTo && msg.properties.correlationId) {
                 return ch.sendToQueue(
                   msg.properties.replyTo,
