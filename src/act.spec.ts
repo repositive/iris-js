@@ -3,7 +3,7 @@ import {Test} from 'tape';
 import { stub, spy } from 'sinon';
 import { setupAdd } from './add';
 import {Channel} from 'amqplib';
-import { setupAct } from './act';
+import { setupAct, RPCError } from './act';
 
 function mockChannel(): any {
   return {
@@ -32,11 +32,10 @@ function wait(time: number): Promise<void> {
 test('Test act', (t: Test) => {
 
   const ch = mockChannel();
-  const _serialization = mockSerialization();
   const exchange = '';
 
   async function test() {
-    const pSetupAct = setupAct({ch, _serialization, exchange});
+    const pSetupAct = setupAct({ch, exchange});
     t.ok(pSetupAct instanceof Promise, 'Setup returns a promise');
 
     const act = await pSetupAct;
@@ -69,7 +68,8 @@ test('Test act', (t: Test) => {
     t.equals(ch.consume.calledOnce && ch.consume.getCall(0).args[0], 'test', 'Consumes the queue');
 
     const r = Math.random();
-    ch.consume.getCall(0).args[1]({content: Buffer.from(JSON.stringify({r})), properties: pCall.args[3]});
+    const content = Buffer.concat([Buffer.from([0x00]), Buffer.from(JSON.stringify({r}))]);
+    ch.consume.getCall(0).args[1]({content, properties: pCall.args[3]});
 
     await pResult2
       .then((result) => {
@@ -79,6 +79,31 @@ test('Test act', (t: Test) => {
       })
       .catch((err) => {
         t.notOk(true, 'On success it should not reject');
+      });
+
+    ch.publish.reset();
+    ch.deleteQueue.reset();
+    ch.deleteQueue.returns(Promise.resolve());
+    ch.consume.reset();
+    ch.ack.reset();
+
+    const pResult3 = act({pattern, payload});
+
+    await wait(0);
+
+    const errContent = Buffer.concat([Buffer.from([0x01]), Buffer.from(JSON.stringify({r}))]);
+    const pCall3 = ch.publish.getCall(0);
+    ch.consume.getCall(0).args[1]({content: errContent, properties: pCall3.args[3]});
+
+    await pResult3
+      .then((result) => {
+        t.notOk(true, 'On error can not execute then');
+      })
+      .catch((err) => {
+        t.ok(err instanceof RPCError, 'The error is an instance of RPCError');
+        t.deepEquals(err.message, JSON.stringify({r}), 'On error get the expected error message');
+        t.ok(ch.deleteQueue.calledOnce, 'Deletes the queue on message on message rejected');
+        t.ok(ch.ack.calledOnce, 'Acknowledges the message reception on message rejection');
       });
   }
 

@@ -10,9 +10,7 @@ irisSetup<any, any, any>(config)
   .then(({ add }) => {
 
     return add({pattern: 'test', async implementation(msg) {
-      return {
-        handled: msg.secret || true
-      };
+      throw new Error();
     }});
   })
   .then(() => {
