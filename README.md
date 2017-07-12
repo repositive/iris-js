@@ -2,6 +2,7 @@
 
 # @repositive/iris
 
+[![codecov](https://codecov.io/gh/repositive/iris-js/branch/master/graph/badge.svg)](https://codecov.io/gh/repositive/iris-js)
 
 # Iris Service #
 

@@ -14,7 +14,8 @@
     "make": "rm -fr dist && tsc",
     "lint": "tslint -c tslint.json src/**/*.ts",
     "test": "nyc --reporter lcov tape $(find dist -name '*.js' ! -name '*.example.js') | tap-spec",
-    "coverage": "nyc check-coverage --lines 80 --functions 80 --branches 80"
+    "coverage": "nyc check-coverage --lines 80 --functions 80 --branches 80",
+    "report-coverage": "cat ./coverage/lcov.info | codecov"
   },
   "nyc": {
     "extension": [
@@ -46,6 +47,7 @@
     "@types/sinon": "2.3.1",
     "@types/tape": "4.2.30",
     "@types/uuid": "3.0.0",
+    "codecov": "2.2.0",
     "husky": "0.13.4",
     "nodemon": "1.11.0",
     "nyc": "11.0.2",
