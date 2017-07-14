@@ -7,10 +7,10 @@ const config = {
 };
 
 irisSetup(config)
-  .then(({ act }) => {
+  .then(({ emit }) => {
 
     async function work() {
-      const result = await act({pattern: 'test', timeout: 10000, payload: {secret: 'chourizo'}});
+      const result = await emit({pattern: 'test', timeout: 10000, payload: {secret: 'chourizo'}});
       console.log(result);
     }
 

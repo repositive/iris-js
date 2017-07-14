@@ -1,6 +1,6 @@
 import {connect, Channel} from 'amqplib';
 import {SetupAddOpts, AddOpts, setupAdd} from './subscribe';
-import {SetupActOpts, ActOpts, setupAct} from './emit';
+import {SetupEmitOpts, EmitOpts, setupEmit} from './emit';
 import {v4} from 'uuid';
 import {SerializationOpts} from './serialization';
 import serialization from './serialization';
@@ -10,7 +10,7 @@ export interface LibOpts<S> {
   exchange: string;
   additions?: {[k: string]: AddOpts<any, any>};
   _serialization?: SerializationOpts<S>;
-  _setupAct?: typeof setupAct;
+  _setupEmit?: typeof setupEmit;
   _setupAdd?: typeof setupAdd;
   _connect?: typeof connect;
   _restartConnection?: typeof restartConnection;
@@ -51,7 +51,7 @@ export default async function setup<S, M extends S, R extends S>({
   exchange,
   additions = {},
   _serialization = serialization,
-  _setupAct = setupAct,
+  _setupEmit = setupEmit,
   _setupAdd = setupAdd,
   _connect = connect,
   _restartConnection = restartConnection,
@@ -65,7 +65,7 @@ export default async function setup<S, M extends S, R extends S>({
 
   const options = Object.assign({}, {ch: channel}, arguments[0]);
   const operations = await Promise.all([
-    _setupAct<S, M, R>(options as SetupActOpts<S>),
+    _setupEmit<S, M, R>(options as SetupEmitOpts<S>),
     _setupAdd<S, M, R>(options as SetupAddOpts<S>)
   ]);
 
@@ -78,11 +78,11 @@ export default async function setup<S, M extends S, R extends S>({
     _restartConnection({opts: {
       url, exchange,
       additions,
-      _serialization, _setupAct,
+      _serialization, _setupEmit,
       _setupAdd, _connect,
       _restartConnection, _log
     }}).then((result: any) => {
-      operations[0] = result.act;
+      operations[0] = result.emit;
       operations[1] = result.add;
       errored = false;
       _log.info('Connection recovered');
@@ -113,7 +113,7 @@ export default async function setup<S, M extends S, R extends S>({
         return operations[1](opts);
       }
     },
-    async act(opts: ActOpts<M>): Promise<R> {
+    async emit(opts: EmitOpts<M>): Promise<R> {
       if (errored) {
         return Promise.reject(new Error('Broken pipe'));
       } else {
