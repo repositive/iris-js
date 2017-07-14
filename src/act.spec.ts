@@ -68,8 +68,10 @@ test('Test act', (t: Test) => {
     t.equals(ch.consume.calledOnce && ch.consume.getCall(0).args[0], 'test', 'Consumes the queue');
 
     const r = Math.random();
-    const content = Buffer.concat([Buffer.from([0x00]), Buffer.from(JSON.stringify({r}))]);
-    ch.consume.getCall(0).args[1]({content, properties: pCall.args[3]});
+    const content = Buffer.from(JSON.stringify({r}));
+    const properties = pCall.args[3];
+    properties.headers = {code: 0};
+    ch.consume.getCall(0).args[1]({content, properties});
 
     await pResult2
       .then((result) => {
@@ -91,9 +93,11 @@ test('Test act', (t: Test) => {
 
     await wait(0);
 
-    const errContent = Buffer.concat([Buffer.from([0x01]), Buffer.from(JSON.stringify({r}))]);
+    const errContent = Buffer.from(JSON.stringify({r}));
     const pCall3 = ch.publish.getCall(0);
-    ch.consume.getCall(0).args[1]({content: errContent, properties: pCall3.args[3]});
+    const prop3 = pCall3.args[3];
+    prop3.headers = {code: 1};
+    ch.consume.getCall(0).args[1]({content: errContent, properties: prop3});
 
     await pResult3
       .then((result) => {

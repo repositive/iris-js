@@ -28,7 +28,8 @@ function fakeMessage() {
     content: Buffer.from('{}'),
     properties: {
       replyTo: 'any-queue',
-      correlationId: 'unique'
+      correlationId: 'unique',
+      headers: {code: 0}
     }
   };
 }
@@ -49,8 +50,8 @@ test('Everything goes well in add function', (t: Test) => {
 
   const ch = mockChannel();
 
-  const expectedResponse = Buffer.concat([Buffer.from([0x0]), Buffer.from('{}')]);
-  const implementation = stub().returns(Promise.resolve(JSON.parse(expectedResponse.slice(1).toString())));
+  const expectedResponse = Buffer.from('{}');
+  const implementation = stub().returns(Promise.resolve(JSON.parse(expectedResponse.toString())));
 
   async function test() {
     const args = { ...libOptions, ch };
@@ -103,7 +104,7 @@ test('Everything goes well in add function', (t: Test) => {
 test('Not everything goes well in add function', (t: Test) => {
   const ch = mockChannel();
   const expectedResponse = Buffer.from('{}');
-  const errorResponse = Buffer.concat([Buffer.from([0x1]), Buffer.from('{"error":"Unexpected error"}')]);
+  const errorResponse = Buffer.from('{"error":"Unexpected error"}');
   async function test() {
     const pattern = 'simple.test.fails';
     const add = await setupAdd({...libOptions, ch });
@@ -135,8 +136,8 @@ test('Not everything goes well in add function', (t: Test) => {
 
 test('Not everything goes well in add function Custom', (t: Test) => {
   const ch = mockChannel();
-  const expectedResponse = Buffer.concat([Buffer.from([0x0]), Buffer.from('{}')]);
-  const customErrorResponse = Buffer.concat([Buffer.from([0x01]), Buffer.from('{"error":"Custom"}')]);
+  const expectedResponse = Buffer.from('{}');
+  const customErrorResponse = Buffer.from('{"error":"Custom"}');
   async function test() {
     const pattern = 'simple.test.fails';
     const add = await setupAdd({ ...libOptions, ch});

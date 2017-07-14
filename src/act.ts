@@ -70,12 +70,10 @@ export async function setupAct<S, M, R>({
         if (msg && msg.properties.correlationId === correlation) {
           _clearTimeout(time);
           ch.deleteQueue(q.queue);
-          const code = msg.content[0];
-          const data = msg.content.slice(1);
-          if (code === 0) {
-            resolve(_serialization.parse(data));
+          if (msg.properties.headers.code === 0) {
+            resolve(_serialization.parse(msg.content));
           } else {
-            reject(new RPCError(data.toString()));
+            reject(new RPCError(msg.content.toString()));
           }
           ch.ack(msg);
         }

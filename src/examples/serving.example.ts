@@ -10,7 +10,7 @@ irisSetup<any, any, any>(config)
   .then(({ add }) => {
 
     return add({pattern: 'test', async implementation(msg) {
-      throw new Error();
+      return Promise.reject(new Error('Shit happened'));
     }});
   })
   .then(() => {
