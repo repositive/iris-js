@@ -2,7 +2,7 @@ import * as test from 'tape';
 import {Test} from 'tape';
 import { stub, spy } from 'sinon';
 import {Channel} from 'amqplib';
-import { setupEmit, RPCError } from './request';
+import { setupRequest, RPCError } from './request';
 
 function mockChannel(): any {
   return {
@@ -34,15 +34,15 @@ test('Test request', (t: Test) => {
   const exchange = '';
 
   async function test() {
-    const pSetupEmit = setupEmit({ch, exchange});
-    t.ok(pSetupEmit instanceof Promise, 'Setup returns a promise');
+    const pSetupRequest = setupRequest({ch, exchange});
+    t.ok(pSetupRequest instanceof Promise, 'Setup returns a promise');
 
-    const emit = await pSetupEmit;
+    const request = await pSetupRequest;
 
     const pattern = '';
     const payload = {};
 
-    const pResult1 = emit({pattern, payload});
+    const pResult1 = request({pattern, payload});
 
     t.ok(pResult1 instanceof Promise, 'Act returns a promise');
 
@@ -58,7 +58,7 @@ test('Test request', (t: Test) => {
     ch.publish.reset();
     ch.deleteQueue.reset();
     ch.consume.reset();
-    const pResult2 = emit({pattern, payload});
+    const pResult2 = request({pattern, payload});
 
     await wait(0);
     const pCall = ch.publish.getCall(0);
@@ -88,7 +88,7 @@ test('Test request', (t: Test) => {
     ch.consume.reset();
     ch.ack.reset();
 
-    const pResult3 = emit({pattern, payload});
+    const pResult3 = request({pattern, payload});
 
     await wait(0);
 

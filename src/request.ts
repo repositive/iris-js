@@ -4,7 +4,7 @@ import { all } from 'bluebird';
 import {Channel, Message} from 'amqplib';
 import {v4} from 'uuid';
 
-export interface EmitOpts<M> {
+export interface RequestOpts<M> {
   pattern: string;
   payload: M;
   timeout?: number;
@@ -22,7 +22,7 @@ export class RPCError extends Error {
   }
 }
 
-export interface SetupEmitOpts<S> {
+export interface SetupRequestOpts<S> {
   ch: Channel;
   exchange: string;
   _serialization?: SerializationOpts<S>;
@@ -31,20 +31,20 @@ export interface SetupEmitOpts<S> {
   _log?: typeof console;
 }
 
-export async function setupEmit<S, M, R>({
+export async function setupRequest<S, M, R>({
   ch,
   exchange,
   _serialization = serialization,
   _setTimeout = setTimeout,
   _clearTimeout = clearTimeout,
   _log = console
-}: SetupEmitOpts<S>) {
+}: SetupRequestOpts<S>) {
 
-  return async function emit({
+  return async function request({
     pattern,
     payload,
     timeout = 100
-  }: EmitOpts<M>): Promise<R> {
+  }: RequestOpts<M>): Promise<R> {
     const q = await ch.assertQueue('', {exclusive: true});
     const correlation  = v4();
     const content = _serialization.serialize(payload);
