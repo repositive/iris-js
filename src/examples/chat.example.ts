@@ -87,12 +87,12 @@ async function init(
   _question?: typeof question,
   _irisSetup?: typeof irisSetup
 }): Promise<void> {
-  const {emit, subscribe} = await _irisSetup(config);
+  const {emit, register} = await _irisSetup(config);
 
   const username = await _question({query: 'Your username: '});
 
-  subscribe({pattern: `chat.${username}`, handler: chatListener});
-  subscribe({pattern: `chat.name.${username}`, handler: prepareNameListener(username)});
+  register({pattern: `chat.${username}`, handler: chatListener});
+  register({pattern: `chat.name.${username}`, handler: prepareNameListener(username)});
 
   const target = await _question({ query: 'Insert user: '});
 

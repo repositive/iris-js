@@ -21,22 +21,22 @@ function wait(time: number): Promise<void> {
 
 function mockOpts() {
   const connectResponse = mockConnect();
-  const subscribe = spy();
+  const register = spy();
   const emit = spy();
-  const subscriptions = {'test': {pattern: 'test', handler: spy()}};
+  const registrations = {'test': {pattern: 'test', handler: spy()}};
   return {
     steps: {
       emit,
-      subscribe,
+      register,
       connectResponse
     },
     mocks: {
       url: '',
       exchange: '',
-      subscriptions,
+      registrations,
       _setupEmit: stub().returns(Promise.resolve(emit)),
-      _setupSubscribe: stub().returns(Promise.resolve(subscribe)),
-      _restartConnection: stub().returns(Promise.resolve({emit, subscribe})),
+      _setupRegister: stub().returns(Promise.resolve(register)),
+      _restartConnection: stub().returns(Promise.resolve({emit, register})),
       _connect: stub().returns(Promise.resolve(connectResponse)),
       _log: {log: spy(), info: spy(), warn: spy(), error: spy()} as any
     }
@@ -85,15 +85,15 @@ test('Tests setup funcion' , (t: Test) => {
   async function test() {
     const result = await iris(opts.mocks);
 
-    t.ok(opts.steps.subscribe.calledOnce, 'Add is being call for each one of the provided subscriptions');
+    t.ok(opts.steps.register.calledOnce, 'Add is being call for each one of the provided registrations');
 
-    const passAddition = opts.steps.subscribe.getCall(0).args[0];
+    const passAddition = opts.steps.register.getCall(0).args[0];
 
-    t.deepEqual(opts.mocks.subscriptions.test, passAddition, 'The subscription passed to subscribe is the expected one');
+    t.deepEqual(opts.mocks.registrations.test, passAddition, 'The subscription passed to register is the expected one');
 
-    opts.steps.subscribe.reset();
-    await result.subscribe({pattern: '', handler: spy()});
-    t.ok(opts.steps.subscribe.calledOnce, 'Returns an initialized subscribe function');
+    opts.steps.register.reset();
+    await result.register({pattern: '', handler: spy()});
+    t.ok(opts.steps.register.calledOnce, 'Returns an initialized register function');
     await result.emit({pattern: '', payload: {}});
     t.ok(opts.steps.emit.calledOnce, 'Returns an initialized act function');
 
@@ -101,9 +101,9 @@ test('Tests setup funcion' , (t: Test) => {
 
     t.equals(on && on.args[0], 'close', 'It adds a handlers to connection close');
 
-    const subscribe = spy();
+    const register = spy();
     const emit = spy();
-    opts.mocks._restartConnection.returns(Promise.resolve({emit, subscribe}));
+    opts.mocks._restartConnection.returns(Promise.resolve({emit, register}));
 
     on.args[1]();
 
@@ -111,8 +111,8 @@ test('Tests setup funcion' , (t: Test) => {
 
     await wait(0); // Wait for the connection to stablish again;
 
-    await result.subscribe({pattern: '', handler: spy()});
-    t.ok(subscribe.calledOnce, 'After successsfull restart subscribe is reasigned');
+    await result.register({pattern: '', handler: spy()});
+    t.ok(register.calledOnce, 'After successsfull restart register is reasigned');
 
     await result.emit({pattern: '', payload: {}});
     t.ok(emit.calledOnce, 'After successsfull restart act is reasigned');
@@ -121,7 +121,7 @@ test('Tests setup funcion' , (t: Test) => {
 
     on.args[1]();
 
-    await result.subscribe({pattern: '', handler: spy()}).then(() => {
+    await result.register({pattern: '', handler: spy()}).then(() => {
       t.ok(true, 'Subscribe works on errored library');
     });
 
