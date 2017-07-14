@@ -1,12 +1,8 @@
-
-
 # @repositive/iris
 
 [![codecov](https://codecov.io/gh/repositive/iris-js/branch/master/graph/badge.svg)](https://codecov.io/gh/repositive/iris-js)
 
-# Iris Service #
-
-The Iris service is called after the Greek personification of the rainbow, as a representation a bridge between mortals and gods and a way of communication between them.
+In Greek mythology, Iris ([/ˈaɪrᵻs/][wikipedia]) is the personification of the rainbow and messenger of the gods.
 
 * [Purpose](#purpose)  
 * [Installation](#installation)  
@@ -15,7 +11,15 @@ The Iris service is called after the Greek personification of the rainbow, as a 
 
 ## Purpose ##
 
-Iris provides an abstraction to request and handle information without the need of know which service is on the other side of the wire.
+Iris provides an abstraction interface to request and handle information without the need of know which service is on the other side of the wire.
+
+**Provided operations**
+- Add a new handler for a specific pattern.
+- Send a message asking for a remote computational response.
+- Send a message and do not expect or wait for a response (broadcast).
+- Send a message and wait for multiple responses.
+
+We aim to provide a high level of extensibility enabling the implementation of custom backends. The current goal of the project is to achieve a reasonable satisfaction using AMQP as its first backend. Other implementations (like SWIM) will follow.
 
 <p align="center">
     <img src="https://github.com/repositive/iris-js/blob/master/docs/imgs/abstractIris.png?raw=true" alt="Abstraction of Iris"/>
@@ -33,6 +37,7 @@ npm install @repositive/iris
 - [Import](#import)
 - [Setup](#setting-up-iris)
 - [Functionality](#functionality)
+- [Examples](#examples)
 
 ### Import
 The library exports a single default function to run the setup.
@@ -59,14 +64,14 @@ export interface LibOpts {
 
 ### Functionality
 
-Running the setup will return a Promise<{register, request}> that will succeed if the connection to the broker could be stablished correctly.
+Running the setup will return a `Promise<{register, request}>` that will succeed if the connection to the broker could be established correctly.
 
 - **register** a handle that answers to a pattern:  
 ```ts
 register<M, R>(opts: RegisterOpts<M, R>): Promise<void>
 ```
 
-Where RegisterOpts<M, R> is:
+Where RegisterOpts is:
 ```ts
 interface RegisterOpts<M, R> {
   pattern: string; // The pattern to which this handler will answer.
@@ -85,7 +90,7 @@ interface HandlerOpts<M> {
 request<M, R>(opts: RequestOpts<M>): Promise<R>`  
 ```
 
-Where RequestOpts<M> is:
+Where RequestOpts is:
 
 ```ts
 interface RequestOpts<M> {
@@ -97,10 +102,37 @@ interface RequestOpts<M> {
 
 If the operation is successful it will return `Promise<R>` where R is the output of the remote handler.
 
-## Internals and Architecture
+## Examples
 
-<p align="center">
-    <img src="https://github.com/repositive/iris-js/blob/master/docs/imgs/Iris.png?raw=true" alt="Iris arq"/>
-    <p align="center">How It works</p>
-</p>
+**Server**
+```ts
+irisSetup(config)
+  .then(({ register }) => {
 
+    return register({pattern: 'test', async handler({payload}) {
+      const {times} = payload;
+
+      const rand = Math.random();
+      return {result: rand * times};
+    }});
+  })
+  .then(() => {
+    console.log(`Iris is running`);
+  })
+  .catch(console.error);
+```
+
+**Client**
+```ts
+irisSetup(config)
+  .then(({ request }) => {
+
+    async function work() {
+      const result = await request({pattern: 'test', payload: {times: 2}});
+      console.log(result);
+    }
+
+  });
+```
+
+[wikipedia]: https://en.wikipedia.org/wiki/Iris_(mythology)
