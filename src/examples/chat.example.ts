@@ -31,13 +31,13 @@ interface Msg {
   comment: string;
 }
 
-async function chatListener({msg}: {msg: any}): Promise<any> {
-  console.log(`\n${msg.author}: ${msg.comment}`);
+async function chatListener({payload}: {payload: any}): Promise<any> {
+  console.log(`\n${payload.author}: ${payload.comment}`);
   return {ack: true};
 }
 
-function prepareNameListener(name: string) {
-  return async function nameListener({msg, username = name}: {msg: any, username: string}): Promise<any> {
+function prepareNameListener(username: string) {
+  return async function nameListener({payload}: {payload: any}): Promise<any> {
     return {
       name: username
     };

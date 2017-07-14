@@ -86,7 +86,7 @@ test('Everything goes well in subscribe function', (t: Test) => {
     await consumer(message);
 
     t.ok(handler.calledOnce, 'The implemented function is called on message');
-    t.deepEquals(handler.getCall(0).args[0], {msg: JSON.parse(message.content.toString())}, 'The implementation is called with the message content');
+    t.deepEquals(handler.getCall(0).args[0], {payload: JSON.parse(message.content.toString())}, 'The implementation is called with the message content');
 
     t.ok(ch.sendToQueue.calledOnce, 'The library pipes the response to request service');
     const sendCall = ch.sendToQueue.getCall(0);

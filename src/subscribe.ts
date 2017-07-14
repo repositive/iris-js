@@ -9,9 +9,13 @@ export interface SetupSubsOpts<S> {
   _serialization?: SerializationOpts<S>;
 }
 
+export interface HandlerOpts<M> {
+  payload: M;
+}
+
 export interface SubsOpts<M, R> {
   pattern: string;
-  handler: <T>(params: ({msg: M} & T)) => Promise<R>;
+  handler: (params: (HandlerOpts<M>)) => Promise<R>;
   namespace?: string;
 }
 
@@ -48,7 +52,7 @@ export async function setupSubscribe<S, M extends S, R extends S>({
           }
 
           try {
-          return handler({msg: content})
+          return handler({payload: content})
             .then((response: R) => {
               if (msg.properties && msg.properties.replyTo && msg.properties.correlationId) {
                 return ch.sendToQueue(

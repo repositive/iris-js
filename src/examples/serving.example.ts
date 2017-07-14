@@ -9,7 +9,7 @@ const config = {
 irisSetup<any, any, any>(config)
   .then(({ subscribe }) => {
 
-    return subscribe({pattern: 'test', async handler({msg}:  {msg: any}) {
+    return subscribe({pattern: 'test', async handler({payload}) {
       return Promise.reject(new Error('Shit happened'));
     }});
   })
