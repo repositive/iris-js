@@ -1,7 +1,7 @@
 import * as test from 'tape';
 import {Test} from 'tape';
 import { stub, spy } from 'sinon';
-import { setupSubscribe } from './register';
+import { setupRegister } from './register';
 import {Channel} from 'amqplib';
 
 function mockChannel(): any {
@@ -46,7 +46,7 @@ function wait(time: number): Promise<void> {
   });
 }
 
-test('Everything goes well in subscribe function', (t: Test) => {
+test('Everything goes well in register function', (t: Test) => {
 
   const ch = mockChannel();
 
@@ -55,9 +55,9 @@ test('Everything goes well in subscribe function', (t: Test) => {
 
   async function test() {
     const args = { ...libOptions, ch };
-    const subscribe = await setupSubscribe(args);
+    const register = await setupRegister(args);
 
-    t.equals(typeof subscribe, 'function', 'setupAdd returns the subscribe function');
+    t.equals(typeof register, 'function', 'setupAdd returns the register function');
 
     t.ok(ch.assertExchange.calledOnce, 'A new exchange is created if none exists');
 
@@ -66,7 +66,7 @@ test('Everything goes well in subscribe function', (t: Test) => {
     t.equals(exCall.args[1], 'topic', 'The exchange provided is of type "topic"');
 
     const pattern = 'simple.test.works';
-    await subscribe({pattern, handler});
+    await register({pattern, handler});
 
     t.ok(ch.assertQueue.calledOnce, 'A new queue is created for the functionality');
     t.ok(ch.assertQueue.getCall(0).args[0].indexOf(pattern) === 0, 'The queue name contains the name of the pattern');
@@ -101,18 +101,18 @@ test('Everything goes well in subscribe function', (t: Test) => {
   test().then(() => t.end());
 });
 
-test('Not everything goes well in subscribe function', (t: Test) => {
+test('Not everything goes well in register function', (t: Test) => {
   const ch = mockChannel();
   const expectedResponse = Buffer.from('{}');
   const errorResponse = Buffer.from('{"error":"Unexpected error"}');
   async function test() {
     const pattern = 'simple.test.fails';
-    const subscribe = await setupSubscribe({...libOptions, ch });
+    const register = await setupRegister({...libOptions, ch });
     const handler = () => {
       throw new Error();
     };
 
-    await subscribe({pattern, handler});
+    await register({pattern, handler});
 
     const consumer = ch.consume.getCall(0).args[1];
 
@@ -140,9 +140,9 @@ test('Not everything goes well in add function Custom', (t: Test) => {
   const customErrorResponse = Buffer.from('{"error":"Custom"}');
   async function test() {
     const pattern = 'simple.test.fails';
-    const subscribe = await setupSubscribe({ ...libOptions, ch});
+    const register = await setupRegister({ ...libOptions, ch});
     const handler = () => Promise.reject(new Error('Custom'));
-    await subscribe({pattern, handler});
+    await register({pattern, handler});
 
     const consumer = ch.consume.getCall(0).args[1];
     const message = fakeMessage();

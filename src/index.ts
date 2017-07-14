@@ -1,5 +1,5 @@
 import {connect, Channel} from 'amqplib';
-import {SetupSubsOpts, SubsOpts, setupSubscribe} from './register';
+import {SetupRegisterOpts, RegisterOpts, setupRegister} from './register';
 import {SetupRequestOpts, RequestOpts, setupRequest} from './request';
 import {v4} from 'uuid';
 import {SerializationOpts} from './serialization';
@@ -8,10 +8,10 @@ import serialization from './serialization';
 export interface LibOpts<S> {
   url: string;
   exchange: string;
-  registrations?: {[k: string]: SubsOpts<any, any>};
+  registrations?: {[k: string]: RegisterOpts<any, any>};
   _serialization?: SerializationOpts<S>;
   _setupRequest?: typeof setupRequest;
-  _setupRegister?: typeof setupSubscribe;
+  _setupRegister?: typeof setupRegister;
   _connect?: typeof connect;
   _restartConnection?: typeof restartConnection;
   _log?: typeof console;
@@ -52,7 +52,7 @@ export default async function setup<S, M extends S, R extends S>({
   registrations = {},
   _serialization = serialization,
   _setupRequest = setupRequest,
-  _setupRegister = setupSubscribe,
+  _setupRegister = setupRegister,
   _connect = connect,
   _restartConnection = restartConnection,
   _log = console
@@ -66,7 +66,7 @@ export default async function setup<S, M extends S, R extends S>({
   const options = Object.assign({}, {ch: channel}, arguments[0]);
   const operations = await Promise.all([
     _setupRequest<S, M, R>(options as SetupRequestOpts<S>),
-    _setupRegister<S, M, R>(options as SetupSubsOpts<S>)
+    _setupRegister<S, M, R>(options as SetupRegisterOpts<S>)
   ]);
 
   let errored = false;
@@ -102,7 +102,7 @@ export default async function setup<S, M extends S, R extends S>({
   }));
 
   return {
-    async register(opts: SubsOpts<M, R>): Promise<void> {
+    async register(opts: RegisterOpts<M, R>): Promise<void> {
       const id = `${opts.pattern}-${opts.namespace || ''}`;
       if (!registrations[id]) {
         registrations[id] = opts;

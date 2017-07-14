@@ -3,7 +3,7 @@ import serialization from './serialization';
 import {Channel, Message} from 'amqplib';
 import {all} from 'bluebird';
 
-export interface SetupSubsOpts<S> {
+export interface SetupRegisterOpts<S> {
   ch: Channel;
   exchange: string;
   _serialization?: SerializationOpts<S>;
@@ -13,24 +13,24 @@ export interface HandlerOpts<M> {
   payload: M;
 }
 
-export interface SubsOpts<M, R> {
+export interface RegisterOpts<M, R> {
   pattern: string;
   handler: (params: (HandlerOpts<M>)) => Promise<R>;
   namespace?: string;
 }
 
-export async function setupSubscribe<S, M extends S, R extends S>({
+export async function setupRegister<S, M extends S, R extends S>({
   exchange,
   ch,
   _serialization = serialization
-}: SetupSubsOpts<S>) {
+}: SetupRegisterOpts<S>) {
   await ch.assertExchange(exchange, 'topic', {durable: true});
 
   return async function subscribe({
     pattern,
     handler,
     namespace
-  }: SubsOpts<M, R>): Promise<void> {
+  }: RegisterOpts<M, R>): Promise<void> {
 
     //TODO Match for invalid patterns.
     const queueName = `${pattern}${namespace ? `-${namespace}` : ''}`;
