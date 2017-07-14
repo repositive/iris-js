@@ -31,7 +31,7 @@ function mockOpts() {
       connectResponse
     },
     mocks: {
-      url: '',
+      uri: '',
       exchange: '',
       registrations,
       _setupRequest: stub().returns(Promise.resolve(request)),

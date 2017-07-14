@@ -1,7 +1,7 @@
 import irisSetup from '..';
 
 const config = {
-  url: process.env.RMQ_CHAT_URI,
+  uri: process.env.RABBIT_URI,
   exchange: 'test'
 };
 

@@ -6,7 +6,7 @@ import {SerializationOpts} from './serialization';
 import serialization from './serialization';
 
 export interface LibOpts<S> {
-  url: string;
+  uri: string;
   exchange: string;
   registrations?: {[k: string]: RegisterOpts<any, any>};
   _serialization?: SerializationOpts<S>;
@@ -47,7 +47,7 @@ export function restartConnection<S>({
 }
 
 export default async function setup<S, M extends S, R extends S>({
-  url,
+  uri,
   exchange,
   registrations = {},
   _serialization = serialization,
@@ -59,7 +59,7 @@ export default async function setup<S, M extends S, R extends S>({
 }: LibOpts<S>) {
 
   const common_options = {durable: true, noAck: true};
-  const conn = await _connect(url, common_options);
+  const conn = await _connect(uri, common_options);
 
   const channel = await conn.createChannel();
 
@@ -76,7 +76,7 @@ export default async function setup<S, M extends S, R extends S>({
     _log.warn(`Connection errored...`);
 
     _restartConnection({opts: {
-      url, exchange,
+      uri, exchange,
       registrations,
       _serialization, _setupRequest,
       _setupRegister, _connect,
