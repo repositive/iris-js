@@ -12,61 +12,92 @@ The Iris service is called after the Greek personification of the rainbow, as a 
 * [Installation](#installation)  
 * [Usage](#usage)  
 * [Internals and Architecture](#internals-and-architecture)
-* [Notes](#notes)  
 
 ## Purpose ##
 
-Iris will provides operations to ask and receive information without the need of knowing who is providing it. For that Iris would be using an exchange queue in  _RabitMQ_ full of requests identified by a pattern. Iris then will check witch of the services could response to that request to do it and send back an answer to the origin.
-
-
-
+Iris provides an abstraction to request and handle information without the need of know which service is on the other side of the wire.
 
 <p align="center">
     <img src="https://github.com/repositive/iris-js/blob/master/docs/imgs/abstractIris.png?raw=true" alt="Abstraction of Iris"/>
-    <p align="center">What a services sees.</p>
 </p>
 
 
-## Installation ##
+## Installation
 
-  - Using npm:
-  ```
-  npm install @repositive/iris
-  ```
+```
+npm install @repositive/iris
+```
 
+## Usage
 
-## Usage ##
+- [Import](#import)
+- [Setup](#setting-up-iris)
+- [Functionality](#functionality)
 
-Steps:
+### Import
+The library exports a single default function to run the setup.
 
-- **Setup** Iris: Provide to iris the basic information for it to work by using the `setup(options: LibOptions)`.  
+```ts
+import setupIris from `@repositive/iris`;
+```
 
-`export interface LibOptions {url:string; exchange: string;}`  
-`url`: Path to RabbitMQ.  
-`exchange`: Name of the exchange queue.  
+### Setting up Iris
+Provide to iris the basic information
 
-It would return the functions `{act, add}`
+```ts
+setupIris(options: LibOpts)
+```  
 
-- **Add** an implementation to response to a pattern:  
-`add(pattern, implementation, namespace):AddOptions<M, R>`:  
-  - `pattern`: Pattern to which this service will respond.  
-  - `implementation`: Logic to manage the message to return a proper response.
-  - `namespace`: Allows to provide several add implementations for the same pattern with out conflict. That way something acting on that pattern will get the responses of all of the implementations an not just one.  
+Where LibOpts is:
+```ts
+export interface LibOpts {
+  uri: string; // URI of rabbitMQ ~"amqp://user:password@host"~
+  exchange: string; // Exchange use for routing ~"iris"~
+  namespace?: string; // Namespace used by default by all registrations ~"servicename"~
+}
+```
 
-It will return  `Promise<void>`.
+### Functionality
 
-- **Act** on a pattern to get return from the implementations of all the services that had added one to that pattern for an specific payload:  
-`act(pattern: string, payload, timeout?): ActOptions<M> `  
-  - `pattern`: Pattern to which this service will act on.    
-  - `payload`: Message to send as input to the implementation.
-  - `Timeout`: If there is no answer after the specified timeout, `act` will reject the promise.  
+Running the setup will return a Promise<{register, request}> that will succeed if the connection to the broker could be stablished correctly.
 
-It will return the output of the remote implementation as `Promise<R>`
+- **register** a handle that answers to a pattern:  
+```ts
+register<M, R>(opts: RegisterOpts<M, R>): Promise<void>
+```
 
+Where RegisterOpts<M, R> is:
+```ts
+interface RegisterOpts<M, R> {
+  pattern: string; // The pattern to which this handler will answer.
+  handler: (opts: HandlerOpts<M>) => Promise<R>; // Logic to handle the mesage.
+  namespace?: string; // Allows to provide several handlers for the same pattern simultaneously"
+}
 
-## Internals and Architecture ##
+interface HandlerOpts<M> {
+  msg: M; // The message sent from the client.
+}
+```
 
+- **request** on a pattern, expecting a single request from one of the handlers registered on a matching pattern.
 
+```ts
+request<M, R>(opts: RequestOpts<M>): Promise<R>`  
+```
+
+Where RequestOpts<M> is:
+
+```ts
+interface RequestOpts<M> {
+  pattern: string; // Pattern used to route the message
+  payload: M; // The message payload
+  timeout?: number; // If there is no answer after this amount of ms the operation will be rejected with a Timeout error
+}
+```
+
+If the operation is successful it will return `Promise<R>` where R is the output of the remote handler.
+
+## Internals and Architecture
 
 <p align="center">
     <img src="https://github.com/repositive/iris-js/blob/master/docs/imgs/Iris.png?raw=true" alt="Iris arq"/>
