@@ -1,6 +1,6 @@
 import {connect, Channel} from 'amqplib';
 import {SetupSubsOpts, SubsOpts, setupSubscribe} from './register';
-import {SetupEmitOpts, EmitOpts, setupEmit} from './emit';
+import {SetupEmitOpts, EmitOpts, setupEmit} from './request';
 import {v4} from 'uuid';
 import {SerializationOpts} from './serialization';
 import serialization from './serialization';
@@ -10,7 +10,7 @@ export interface LibOpts<S> {
   exchange: string;
   registrations?: {[k: string]: SubsOpts<any, any>};
   _serialization?: SerializationOpts<S>;
-  _setupEmit?: typeof setupEmit;
+  _setupRequest?: typeof setupEmit;
   _setupRegister?: typeof setupSubscribe;
   _connect?: typeof connect;
   _restartConnection?: typeof restartConnection;
@@ -51,7 +51,7 @@ export default async function setup<S, M extends S, R extends S>({
   exchange,
   registrations = {},
   _serialization = serialization,
-  _setupEmit = setupEmit,
+  _setupRequest = setupEmit,
   _setupRegister = setupSubscribe,
   _connect = connect,
   _restartConnection = restartConnection,
@@ -65,7 +65,7 @@ export default async function setup<S, M extends S, R extends S>({
 
   const options = Object.assign({}, {ch: channel}, arguments[0]);
   const operations = await Promise.all([
-    _setupEmit<S, M, R>(options as SetupEmitOpts<S>),
+    _setupRequest<S, M, R>(options as SetupEmitOpts<S>),
     _setupRegister<S, M, R>(options as SetupSubsOpts<S>)
   ]);
 
@@ -78,12 +78,12 @@ export default async function setup<S, M extends S, R extends S>({
     _restartConnection({opts: {
       url, exchange,
       registrations,
-      _serialization, _setupEmit,
+      _serialization, _setupRequest,
       _setupRegister, _connect,
       _restartConnection, _log
-    }}).then((result: {register: any, emit: any}) => {
-      operations[0] = result.emit;
-      operations[1] = result.register;
+    }}).then(({register, request}) => {
+      operations[0] = request;
+      operations[1] = register;
       errored = false;
       _log.info('Connection recovered');
     })
@@ -113,7 +113,7 @@ export default async function setup<S, M extends S, R extends S>({
         return operations[1](opts);
       }
     },
-    async emit(opts: EmitOpts<M>): Promise<R> {
+    async request(opts: EmitOpts<M>): Promise<R> {
       if (errored) {
         return Promise.reject(new Error('Broken pipe'));
       } else {

@@ -45,7 +45,7 @@ function prepareNameListener(username: string) {
 }
 
 type ChatParams = {
-  emit: (params: {pattern: string, payload: any}) => Promise<any>,
+  request: (params: {pattern: string, payload: any}) => Promise<any>,
   username: string,
   target: string,
   _question?: typeof question,
@@ -60,7 +60,7 @@ const cmds: {[k: string]: (params: {oldParams: ChatParams, _question?: typeof qu
 };
 
 async function chat({
-  emit,
+  request,
   username,
   target,
   _question = question,
@@ -72,9 +72,9 @@ async function chat({
     const answer = await _question({query: `${username}: `});
     if(/:[a-z]/.test(answer)) {
       const cmd = answer.substring(1);
-      return chat(await _cmds[cmd]({oldParams: {emit, username, target, _question}}));
+      return chat(await _cmds[cmd]({oldParams: {request, username, target, _question}}));
     } else {
-      await emit({pattern: `chat.${target}`, payload: { comment: `${answer}`, author: username}}).catch(console.warn);
+      await request({pattern: `chat.${target}`, payload: { comment: `${answer}`, author: username}}).catch(console.warn);
     }
   }
 }
@@ -87,7 +87,7 @@ async function init(
   _question?: typeof question,
   _irisSetup?: typeof irisSetup
 }): Promise<void> {
-  const {emit, register} = await _irisSetup(config);
+  const {request, register} = await _irisSetup(config);
 
   const username = await _question({query: 'Your username: '});
 
@@ -96,7 +96,7 @@ async function init(
 
   const target = await _question({ query: 'Insert user: '});
 
-  return chat({emit, username, target});
+  return chat({request, username, target});
 
 }
 

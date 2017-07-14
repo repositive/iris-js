@@ -22,11 +22,11 @@ function wait(time: number): Promise<void> {
 function mockOpts() {
   const connectResponse = mockConnect();
   const register = spy();
-  const emit = spy();
+  const request = spy();
   const registrations = {'test': {pattern: 'test', handler: spy()}};
   return {
     steps: {
-      emit,
+      request,
       register,
       connectResponse
     },
@@ -34,9 +34,9 @@ function mockOpts() {
       url: '',
       exchange: '',
       registrations,
-      _setupEmit: stub().returns(Promise.resolve(emit)),
+      _setupRequest: stub().returns(Promise.resolve(request)),
       _setupRegister: stub().returns(Promise.resolve(register)),
-      _restartConnection: stub().returns(Promise.resolve({emit, register})),
+      _restartConnection: stub().returns(Promise.resolve({request, register})),
       _connect: stub().returns(Promise.resolve(connectResponse)),
       _log: {log: spy(), info: spy(), warn: spy(), error: spy()} as any
     }
@@ -94,16 +94,16 @@ test('Tests setup funcion' , (t: Test) => {
     opts.steps.register.reset();
     await result.register({pattern: '', handler: spy()});
     t.ok(opts.steps.register.calledOnce, 'Returns an initialized register function');
-    await result.emit({pattern: '', payload: {}});
-    t.ok(opts.steps.emit.calledOnce, 'Returns an initialized act function');
+    await result.request({pattern: '', payload: {}});
+    t.ok(opts.steps.request.calledOnce, 'Returns an initialized act function');
 
     const on = opts.steps.connectResponse.on.getCall(0);
 
     t.equals(on && on.args[0], 'close', 'It adds a handlers to connection close');
 
     const register = spy();
-    const emit = spy();
-    opts.mocks._restartConnection.returns(Promise.resolve({emit, register}));
+    const request = spy();
+    opts.mocks._restartConnection.returns(Promise.resolve({request, register}));
 
     on.args[1]();
 
@@ -114,8 +114,8 @@ test('Tests setup funcion' , (t: Test) => {
     await result.register({pattern: '', handler: spy()});
     t.ok(register.calledOnce, 'After successsfull restart register is reasigned');
 
-    await result.emit({pattern: '', payload: {}});
-    t.ok(emit.calledOnce, 'After successsfull restart act is reasigned');
+    await result.request({pattern: '', payload: {}});
+    t.ok(request.calledOnce, 'After successsfull restart act is reasigned');
 
     opts.mocks._restartConnection.returns(Promise.reject({}));
 
@@ -125,7 +125,7 @@ test('Tests setup funcion' , (t: Test) => {
       t.ok(true, 'Subscribe works on errored library');
     });
 
-    await result.emit({pattern: '', payload: {}})
+    await result.request({pattern: '', payload: {}})
       .then(() => {
         t.ok(false, 'Emit should fail on errored library');
       })

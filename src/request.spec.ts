@@ -2,7 +2,7 @@ import * as test from 'tape';
 import {Test} from 'tape';
 import { stub, spy } from 'sinon';
 import {Channel} from 'amqplib';
-import { setupEmit, RPCError } from './emit';
+import { setupEmit, RPCError } from './request';
 
 function mockChannel(): any {
   return {
@@ -28,7 +28,7 @@ function wait(time: number): Promise<void> {
   });
 }
 
-test('Test emit', (t: Test) => {
+test('Test request', (t: Test) => {
 
   const ch = mockChannel();
   const exchange = '';
