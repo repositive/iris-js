@@ -7,9 +7,9 @@ const config = {
 };
 
 irisSetup<any, any, any>(config)
-  .then(({ add }) => {
+  .then(({ subscribe }) => {
 
-    return add({pattern: 'test', async implementation(msg) {
+    return subscribe({pattern: 'test', async handler({msg}:  {msg: any}) {
       return Promise.reject(new Error('Shit happened'));
     }});
   })

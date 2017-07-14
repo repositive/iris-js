@@ -4,8 +4,6 @@ import { stub, spy } from 'sinon';
 import iris from './index';
 import { restartConnection } from './index';
 
-const setupAct: any = (spy: any) => stub().returns(Promise.resolve(spy()));
-const setupAdd: any = (spy: any) => stub().returns(Promise.resolve(spy()));
 const _restartConnection = spy();
 
 function mockConnect() {
@@ -23,22 +21,22 @@ function wait(time: number): Promise<void> {
 
 function mockOpts() {
   const connectResponse = mockConnect();
-  const add = spy();
+  const subscribe = spy();
   const emit = spy();
-  const additions = {'test': {pattern: 'test', implementation: spy()}};
+  const subscriptions = {'test': {pattern: 'test', handler: spy()}};
   return {
     steps: {
       emit,
-      add,
+      subscribe,
       connectResponse
     },
     mocks: {
       url: '',
       exchange: '',
-      additions,
+      subscriptions,
       _setupEmit: stub().returns(Promise.resolve(emit)),
-      _setupAdd: stub().returns(Promise.resolve(add)),
-      _restartConnection: stub().returns(Promise.resolve({emit, add})),
+      _setupSubscribe: stub().returns(Promise.resolve(subscribe)),
+      _restartConnection: stub().returns(Promise.resolve({emit, subscribe})),
       _connect: stub().returns(Promise.resolve(connectResponse)),
       _log: {log: spy(), info: spy(), warn: spy(), error: spy()} as any
     }
@@ -87,15 +85,15 @@ test('Tests setup funcion' , (t: Test) => {
   async function test() {
     const result = await iris(opts.mocks);
 
-    t.ok(opts.steps.add.calledOnce, 'Add is being call for each one of the provided additions');
+    t.ok(opts.steps.subscribe.calledOnce, 'Add is being call for each one of the provided subscriptions');
 
-    const passAddition = opts.steps.add.getCall(0).args[0];
+    const passAddition = opts.steps.subscribe.getCall(0).args[0];
 
-    t.deepEqual(opts.mocks.additions.test, passAddition, 'The addition passed to add is the expected one');
+    t.deepEqual(opts.mocks.subscriptions.test, passAddition, 'The subscription passed to subscribe is the expected one');
 
-    opts.steps.add.reset();
-    await result.add({pattern: '', implementation: spy()});
-    t.ok(opts.steps.add.calledOnce, 'Returns an initialized add function');
+    opts.steps.subscribe.reset();
+    await result.subscribe({pattern: '', handler: spy()});
+    t.ok(opts.steps.subscribe.calledOnce, 'Returns an initialized subscribe function');
     await result.emit({pattern: '', payload: {}});
     t.ok(opts.steps.emit.calledOnce, 'Returns an initialized act function');
 
@@ -103,9 +101,9 @@ test('Tests setup funcion' , (t: Test) => {
 
     t.equals(on && on.args[0], 'close', 'It adds a handlers to connection close');
 
-    const add = spy();
+    const subscribe = spy();
     const emit = spy();
-    opts.mocks._restartConnection.returns(Promise.resolve({emit, add}));
+    opts.mocks._restartConnection.returns(Promise.resolve({emit, subscribe}));
 
     on.args[1]();
 
@@ -113,8 +111,8 @@ test('Tests setup funcion' , (t: Test) => {
 
     await wait(0); // Wait for the connection to stablish again;
 
-    await result.add({pattern: '', implementation: spy()});
-    t.ok(add.calledOnce, 'After successsfull restart add is reasigned');
+    await result.subscribe({pattern: '', handler: spy()});
+    t.ok(subscribe.calledOnce, 'After successsfull restart subscribe is reasigned');
 
     await result.emit({pattern: '', payload: {}});
     t.ok(emit.calledOnce, 'After successsfull restart act is reasigned');
@@ -123,16 +121,16 @@ test('Tests setup funcion' , (t: Test) => {
 
     on.args[1]();
 
-    await result.add({pattern: '', implementation: spy()}).then(() => {
-      t.ok(true, 'Add works on errored library');
+    await result.subscribe({pattern: '', handler: spy()}).then(() => {
+      t.ok(true, 'Subscribe works on errored library');
     });
 
     await result.emit({pattern: '', payload: {}})
       .then(() => {
-        t.ok(false, 'Act should fail on errored library');
+        t.ok(false, 'Emit should fail on errored library');
       })
       .catch(err => {
-        t.ok(true, 'Act rejects the promise if the pipe is broken');
+        t.ok(true, 'Emit rejects the promise if the pipe is broken');
       });
   }
 

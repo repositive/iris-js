@@ -3,30 +3,30 @@ import serialization from './serialization';
 import {Channel, Message} from 'amqplib';
 import {all} from 'bluebird';
 
-export interface SetupAddOpts<S> {
+export interface SetupSubsOpts<S> {
   ch: Channel;
   exchange: string;
   _serialization?: SerializationOpts<S>;
 }
 
-export interface AddOpts<M, R> {
+export interface SubsOpts<M, R> {
   pattern: string;
-  implementation: (msg: M) => Promise<R>;
+  handler: <T>(params: ({msg: M} & T)) => Promise<R>;
   namespace?: string;
 }
 
-export async function setupAdd<S, M extends S, R extends S>({
+export async function setupSubscribe<S, M extends S, R extends S>({
   exchange,
   ch,
   _serialization = serialization
-}: SetupAddOpts<S>) {
+}: SetupSubsOpts<S>) {
   await ch.assertExchange(exchange, 'topic', {durable: true});
 
-  return async function add({
+  return async function subscribe({
     pattern,
-    implementation,
+    handler,
     namespace
-  }: AddOpts<M, R>): Promise<void> {
+  }: SubsOpts<M, R>): Promise<void> {
 
     //TODO Match for invalid patterns.
     const queueName = `${pattern}${namespace ? `-${namespace}` : ''}`;
@@ -48,7 +48,7 @@ export async function setupAdd<S, M extends S, R extends S>({
           }
 
           try {
-          return implementation(content)
+          return handler({msg: content})
             .then((response: R) => {
               if (msg.properties && msg.properties.replyTo && msg.properties.correlationId) {
                 return ch.sendToQueue(

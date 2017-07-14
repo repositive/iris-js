@@ -31,13 +31,13 @@ interface Msg {
   comment: string;
 }
 
-async function chatListener(msg: any): Promise<any> {
+async function chatListener({msg}: {msg: any}): Promise<any> {
   console.log(`\n${msg.author}: ${msg.comment}`);
   return {ack: true};
 }
 
-function prepareNameListener({username}: {username: string}) {
-  return async function nameListener(msg: any): Promise<any> {
+function prepareNameListener(name: string) {
+  return async function nameListener({msg, username = name}: {msg: any, username: string}): Promise<any> {
     return {
       name: username
     };
@@ -87,12 +87,12 @@ async function init(
   _question?: typeof question,
   _irisSetup?: typeof irisSetup
 }): Promise<void> {
-  const {emit, add} = await _irisSetup(config);
+  const {emit, subscribe} = await _irisSetup(config);
 
   const username = await _question({query: 'Your username: '});
 
-  add({pattern: `chat.${username}`, implementation: chatListener});
-  add({pattern: `chat.name.${username}`, implementation: prepareNameListener({username})});
+  subscribe({pattern: `chat.${username}`, handler: chatListener});
+  subscribe({pattern: `chat.name.${username}`, handler: prepareNameListener(username)});
 
   const target = await _question({ query: 'Insert user: '});
 
