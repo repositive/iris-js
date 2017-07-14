@@ -1,7 +1,7 @@
 import * as test from 'tape';
 import {Test} from 'tape';
 import { stub, spy } from 'sinon';
-import { setupAdd } from './add';
+import { setupAdd } from './subscribe';
 import {Channel} from 'amqplib';
 
 function mockChannel(): any {

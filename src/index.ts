@@ -1,6 +1,6 @@
 import {connect, Channel} from 'amqplib';
-import {SetupAddOpts, AddOpts, setupAdd} from './add';
-import {SetupActOpts, ActOpts, setupAct} from './act';
+import {SetupAddOpts, AddOpts, setupAdd} from './subscribe';
+import {SetupActOpts, ActOpts, setupAct} from './emit';
 import {v4} from 'uuid';
 import {SerializationOpts} from './serialization';
 import serialization from './serialization';
