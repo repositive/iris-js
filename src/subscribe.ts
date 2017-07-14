@@ -42,8 +42,8 @@ export async function setupAdd<S, M extends S, R extends S>({
           function onError(err?: Error) {
             return ch.sendToQueue(
               msg.properties.replyTo,
-              Buffer.concat([Buffer.from([0x1]), Buffer.from(JSON.stringify({error: (err && err.message) || 'Unexpected error'}))]),
-              {correlationId: msg.properties.correlationId}
+              Buffer.from(JSON.stringify({error: (err && err.message) || 'Unexpected error'})),
+              {correlationId: msg.properties.correlationId, headers: {code: 1}}
             );
           }
 
@@ -53,8 +53,8 @@ export async function setupAdd<S, M extends S, R extends S>({
               if (msg.properties && msg.properties.replyTo && msg.properties.correlationId) {
                 return ch.sendToQueue(
                   msg.properties.replyTo,
-                  Buffer.concat([Buffer.from([0x0]), serialization.serialize(response)]),
-                  {correlationId: msg.properties.correlationId}
+                  serialization.serialize(response),
+                  {correlationId: msg.properties.correlationId, headers: {code: 0}}
                 );
               }
             })
