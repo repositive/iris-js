@@ -6,6 +6,7 @@ import {all} from 'bluebird';
 export interface SetupRegisterOpts<S> {
   ch: Channel;
   exchange: string;
+  namespace?: string;
   _serialization?: SerializationOpts<S>;
 }
 
@@ -22,19 +23,18 @@ export interface RegisterOpts<M, R> {
 export async function setupRegister<S, M extends S, R extends S>({
   exchange,
   ch,
+  namespace = 'default',
   _serialization = serialization
 }: SetupRegisterOpts<S>) {
   await ch.assertExchange(exchange, 'topic', {durable: true});
 
+  const _namespace = arguments[0].namespace;
   return async function subscribe({
     pattern,
-    handler,
-    namespace
+    handler
   }: RegisterOpts<M, R>): Promise<void> {
-
-    //TODO Match for invalid patterns.
-    const queueName = `${pattern}${namespace ? `-${namespace}` : ''}`;
-    const errorName = `${pattern}${namespace ? `-${namespace}` : ''}-error`;
+    const __namespace = arguments[0].namespace || namespace;
+    const queueName = `${__namespace}-${pattern}`;
     return await all([
       ch.assertQueue(queueName),
       ch.prefetch(1),

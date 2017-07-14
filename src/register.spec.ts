@@ -69,16 +69,16 @@ test('Everything goes well in register function', (t: Test) => {
     await register({pattern, handler});
 
     t.ok(ch.assertQueue.calledOnce, 'A new queue is created for the functionality');
-    t.ok(ch.assertQueue.getCall(0).args[0].indexOf(pattern) === 0, 'The queue name contains the name of the pattern');
+    t.ok(ch.assertQueue.getCall(0).args[0].indexOf(pattern) > -1, 'The queue name contains the name of the pattern');
 
     t.ok(ch.bindQueue.calledOnce, 'The queue is binded to the exchange');
     const bindCall = ch.bindQueue.getCall(0);
-    t.ok(bindCall.args[0].indexOf(pattern) === 0, 'The queue binded is the created for this functionality');
+    t.ok(bindCall.args[0].indexOf(pattern) > -1, 'The queue binded is the created for this functionality');
     t.equals(bindCall.args[1], libOptions.exchange, 'It binds the queue to the configured exchange');
 
     t.ok(ch.consume.calledOnce, 'It starts consuming the queue');
     const consumeCall = ch.consume.getCall(0);
-    t.ok(consumeCall.args[0].indexOf(pattern) === 0, 'The queue consumed is the specific of this service');
+    t.ok(consumeCall.args[0].indexOf(pattern) > -1, 'The queue consumed is the specific of this service');
 
     const consumer = consumeCall.args[1];
 
