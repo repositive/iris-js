@@ -2,15 +2,15 @@
 import irisSetup from '..';
 
 const config = {
-  url: 'amqp://repositive:repositive@localhost:5672',
+  uri: process.env.RABBIT_URI,
   exchange: 'test'
 };
 
 irisSetup(config)
-  .then(({ act }) => {
+  .then(({ request }) => {
 
     async function work() {
-      const result = await act({pattern: 'test', timeout: 10000, payload: {secret: 'chourizo'}});
+      const result = await request({pattern: 'test', payload: {times: 2}});
       console.log(result);
     }
 

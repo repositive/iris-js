@@ -1,7 +1,7 @@
 import irisSetup from '..';
 
 const config = {
-  url: process.env.RMQ_CHAT_URI,
+  uri: process.env.RABBIT_URI,
   exchange: 'test'
 };
 
@@ -31,13 +31,13 @@ interface Msg {
   comment: string;
 }
 
-async function chatListener(msg: any): Promise<any> {
-  console.log(`\n${msg.author}: ${msg.comment}`);
+async function chatListener({payload}: {payload: any}): Promise<any> {
+  console.log(`\n${payload.author}: ${payload.comment}`);
   return {ack: true};
 }
 
-function prepareNameListener({username}: {username: string}) {
-  return async function nameListener(msg: any): Promise<any> {
+function prepareNameListener(username: string) {
+  return async function nameListener({payload}: {payload: any}): Promise<any> {
     return {
       name: username
     };
@@ -45,7 +45,7 @@ function prepareNameListener({username}: {username: string}) {
 }
 
 type ChatParams = {
-  act: (params: {pattern: string, payload: any}) => Promise<any>,
+  request: (params: {pattern: string, payload: any}) => Promise<any>,
   username: string,
   target: string,
   _question?: typeof question,
@@ -60,7 +60,7 @@ const cmds: {[k: string]: (params: {oldParams: ChatParams, _question?: typeof qu
 };
 
 async function chat({
-  act,
+  request,
   username,
   target,
   _question = question,
@@ -72,9 +72,9 @@ async function chat({
     const answer = await _question({query: `${username}: `});
     if(/:[a-z]/.test(answer)) {
       const cmd = answer.substring(1);
-      return chat(await _cmds[cmd]({oldParams: {act, username, target, _question}}));
+      return chat(await _cmds[cmd]({oldParams: {request, username, target, _question}}));
     } else {
-      await act({pattern: `chat.${target}`, payload: { comment: `${answer}`, author: username}}).catch(console.warn);
+      await request({pattern: `chat.${target}`, payload: { comment: `${answer}`, author: username}}).catch(console.warn);
     }
   }
 }
@@ -87,16 +87,16 @@ async function init(
   _question?: typeof question,
   _irisSetup?: typeof irisSetup
 }): Promise<void> {
-  const {act, add} = await _irisSetup(config);
+  const {request, register} = await _irisSetup(config);
 
   const username = await _question({query: 'Your username: '});
 
-  add({pattern: `chat.${username}`, implementation: chatListener});
-  add({pattern: `chat.name.${username}`, implementation: prepareNameListener({username})});
+  register({pattern: `chat.${username}`, handler: chatListener});
+  register({pattern: `chat.name.${username}`, handler: prepareNameListener(username)});
 
   const target = await _question({ query: 'Insert user: '});
 
-  return chat({act, username, target});
+  return chat({request, username, target});
 
 }
 

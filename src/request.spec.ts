@@ -1,9 +1,8 @@
 import * as test from 'tape';
 import {Test} from 'tape';
 import { stub, spy } from 'sinon';
-import { setupAdd } from './add';
 import {Channel} from 'amqplib';
-import { setupAct, RPCError } from './act';
+import { setupRequest, RPCError } from './request';
 
 function mockChannel(): any {
   return {
@@ -29,21 +28,21 @@ function wait(time: number): Promise<void> {
   });
 }
 
-test('Test act', (t: Test) => {
+test('Test request', (t: Test) => {
 
   const ch = mockChannel();
   const exchange = '';
 
   async function test() {
-    const pSetupAct = setupAct({ch, exchange});
-    t.ok(pSetupAct instanceof Promise, 'Setup returns a promise');
+    const pSetupRequest = setupRequest({ch, exchange});
+    t.ok(pSetupRequest instanceof Promise, 'Setup returns a promise');
 
-    const act = await pSetupAct;
+    const request = await pSetupRequest;
 
     const pattern = '';
     const payload = {};
 
-    const pResult1 = act({pattern, payload});
+    const pResult1 = request({pattern, payload});
 
     t.ok(pResult1 instanceof Promise, 'Act returns a promise');
 
@@ -59,7 +58,7 @@ test('Test act', (t: Test) => {
     ch.publish.reset();
     ch.deleteQueue.reset();
     ch.consume.reset();
-    const pResult2 = act({pattern, payload});
+    const pResult2 = request({pattern, payload});
 
     await wait(0);
     const pCall = ch.publish.getCall(0);
@@ -89,7 +88,7 @@ test('Test act', (t: Test) => {
     ch.consume.reset();
     ch.ack.reset();
 
-    const pResult3 = act({pattern, payload});
+    const pResult3 = request({pattern, payload});
 
     await wait(0);
 

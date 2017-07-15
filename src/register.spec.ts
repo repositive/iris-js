@@ -1,7 +1,7 @@
 import * as test from 'tape';
 import {Test} from 'tape';
 import { stub, spy } from 'sinon';
-import { setupAdd } from './add';
+import { setupRegister } from './register';
 import {Channel} from 'amqplib';
 
 function mockChannel(): any {
@@ -46,18 +46,18 @@ function wait(time: number): Promise<void> {
   });
 }
 
-test('Everything goes well in add function', (t: Test) => {
+test('Everything goes well in register function', (t: Test) => {
 
   const ch = mockChannel();
 
   const expectedResponse = Buffer.from('{}');
-  const implementation = stub().returns(Promise.resolve(JSON.parse(expectedResponse.toString())));
+  const handler = stub().returns(Promise.resolve(JSON.parse(expectedResponse.toString())));
 
   async function test() {
     const args = { ...libOptions, ch };
-    const add = await setupAdd(args);
+    const register = await setupRegister(args);
 
-    t.equals(typeof add, 'function', 'setupAdd returns the add function');
+    t.equals(typeof register, 'function', 'setupAdd returns the register function');
 
     t.ok(ch.assertExchange.calledOnce, 'A new exchange is created if none exists');
 
@@ -66,27 +66,27 @@ test('Everything goes well in add function', (t: Test) => {
     t.equals(exCall.args[1], 'topic', 'The exchange provided is of type "topic"');
 
     const pattern = 'simple.test.works';
-    await add({pattern, implementation});
+    await register({pattern, handler});
 
     t.ok(ch.assertQueue.calledOnce, 'A new queue is created for the functionality');
-    t.ok(ch.assertQueue.getCall(0).args[0].indexOf(pattern) === 0, 'The queue name contains the name of the pattern');
+    t.ok(ch.assertQueue.getCall(0).args[0].indexOf(pattern) > -1, 'The queue name contains the name of the pattern');
 
     t.ok(ch.bindQueue.calledOnce, 'The queue is binded to the exchange');
     const bindCall = ch.bindQueue.getCall(0);
-    t.ok(bindCall.args[0].indexOf(pattern) === 0, 'The queue binded is the created for this functionality');
+    t.ok(bindCall.args[0].indexOf(pattern) > -1, 'The queue binded is the created for this functionality');
     t.equals(bindCall.args[1], libOptions.exchange, 'It binds the queue to the configured exchange');
 
     t.ok(ch.consume.calledOnce, 'It starts consuming the queue');
     const consumeCall = ch.consume.getCall(0);
-    t.ok(consumeCall.args[0].indexOf(pattern) === 0, 'The queue consumed is the specific of this service');
+    t.ok(consumeCall.args[0].indexOf(pattern) > -1, 'The queue consumed is the specific of this service');
 
     const consumer = consumeCall.args[1];
 
     const message = fakeMessage();
     await consumer(message);
 
-    t.ok(implementation.calledOnce, 'The implemented function is called on message');
-    t.deepEquals(implementation.getCall(0).args[0], JSON.parse(message.content.toString()), 'The implementation is called with the message content');
+    t.ok(handler.calledOnce, 'The implemented function is called on message');
+    t.deepEquals(handler.getCall(0).args[0], {payload: JSON.parse(message.content.toString())}, 'The implementation is called with the message content');
 
     t.ok(ch.sendToQueue.calledOnce, 'The library pipes the response to request service');
     const sendCall = ch.sendToQueue.getCall(0);
@@ -101,18 +101,18 @@ test('Everything goes well in add function', (t: Test) => {
   test().then(() => t.end());
 });
 
-test('Not everything goes well in add function', (t: Test) => {
+test('Not everything goes well in register function', (t: Test) => {
   const ch = mockChannel();
   const expectedResponse = Buffer.from('{}');
   const errorResponse = Buffer.from('{"error":"Unexpected error"}');
   async function test() {
     const pattern = 'simple.test.fails';
-    const add = await setupAdd({...libOptions, ch });
-    const implementation = () => {
+    const register = await setupRegister({...libOptions, ch });
+    const handler = () => {
       throw new Error();
     };
 
-    await add({pattern, implementation});
+    await register({pattern, handler});
 
     const consumer = ch.consume.getCall(0).args[1];
 
@@ -140,9 +140,9 @@ test('Not everything goes well in add function Custom', (t: Test) => {
   const customErrorResponse = Buffer.from('{"error":"Custom"}');
   async function test() {
     const pattern = 'simple.test.fails';
-    const add = await setupAdd({ ...libOptions, ch});
-    const implementation = () => Promise.reject(new Error('Custom'));
-    await add({pattern, implementation});
+    const register = await setupRegister({ ...libOptions, ch});
+    const handler = () => Promise.reject(new Error('Custom'));
+    await register({pattern, handler});
 
     const consumer = ch.consume.getCall(0).args[1];
     const message = fakeMessage();

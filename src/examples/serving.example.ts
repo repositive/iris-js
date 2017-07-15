@@ -2,15 +2,37 @@
 import irisSetup from '..';
 
 const config = {
-  url: 'amqp://repositive:repositive@localhost:5672',
+  uri: process.env.RABBIT_URI,
   exchange: 'test'
 };
 
-irisSetup<any, any, any>(config)
-  .then(({ add }) => {
+async function wait(time: number) {
+  return new Promise<void>((resolve, reject) => {
+    setTimeout(
+      () => {
+        resolve();
+      },
+      time
+    );
+  });
+}
 
-    return add({pattern: 'test', async implementation(msg) {
-      return Promise.reject(new Error('Shit happened'));
+irisSetup<any, any, any>(config)
+  .then(({ register }) => {
+
+    return register({pattern: 'test', async handler({payload}) {
+      const {times} = payload;
+
+      const rand = Math.random();
+      if (rand > 0.8) {
+        return Promise.reject(new Error('I have a 20% of rejecting you know'));
+      } else if (rand < 0.2) {
+        throw new Error('And a 20% chance of blowing up badly');
+      } else if (rand <= 0.8 && rand >= 0.6) {
+        await wait(100);
+      } else {
+        return {result: rand * times};
+      }
     }});
   })
   .then(() => {

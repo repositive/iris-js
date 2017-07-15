@@ -1,17 +1,17 @@
 import {connect, Channel} from 'amqplib';
-import {SetupAddOpts, AddOpts, setupAdd} from './add';
-import {SetupActOpts, ActOpts, setupAct} from './act';
+import {SetupRegisterOpts, RegisterOpts, setupRegister} from './register';
+import {SetupRequestOpts, RequestOpts, setupRequest} from './request';
 import {v4} from 'uuid';
 import {SerializationOpts} from './serialization';
 import serialization from './serialization';
 
 export interface LibOpts<S> {
-  url: string;
+  uri: string;
   exchange: string;
-  additions?: {[k: string]: AddOpts<any, any>};
+  registrations?: {[k: string]: RegisterOpts<any, any>};
   _serialization?: SerializationOpts<S>;
-  _setupAct?: typeof setupAct;
-  _setupAdd?: typeof setupAdd;
+  _setupRequest?: typeof setupRequest;
+  _setupRegister?: typeof setupRegister;
   _connect?: typeof connect;
   _restartConnection?: typeof restartConnection;
   _log?: typeof console;
@@ -47,26 +47,26 @@ export function restartConnection<S>({
 }
 
 export default async function setup<S, M extends S, R extends S>({
-  url,
+  uri,
   exchange,
-  additions = {},
+  registrations = {},
   _serialization = serialization,
-  _setupAct = setupAct,
-  _setupAdd = setupAdd,
+  _setupRequest = setupRequest,
+  _setupRegister = setupRegister,
   _connect = connect,
   _restartConnection = restartConnection,
   _log = console
 }: LibOpts<S>) {
 
   const common_options = {durable: true, noAck: true};
-  const conn = await _connect(url, common_options);
+  const conn = await _connect(uri, common_options);
 
   const channel = await conn.createChannel();
 
   const options = Object.assign({}, {ch: channel}, arguments[0]);
   const operations = await Promise.all([
-    _setupAct<S, M, R>(options as SetupActOpts<S>),
-    _setupAdd<S, M, R>(options as SetupAddOpts<S>)
+    _setupRequest<S, M, R>(options as SetupRequestOpts<S>),
+    _setupRegister<S, M, R>(options as SetupRegisterOpts<S>)
   ]);
 
   let errored = false;
@@ -76,14 +76,14 @@ export default async function setup<S, M extends S, R extends S>({
     _log.warn(`Connection errored...`);
 
     _restartConnection({opts: {
-      url, exchange,
-      additions,
-      _serialization, _setupAct,
-      _setupAdd, _connect,
+      uri, exchange,
+      registrations,
+      _serialization, _setupRequest,
+      _setupRegister, _connect,
       _restartConnection, _log
-    }}).then((result: any) => {
-      operations[0] = result.act;
-      operations[1] = result.add;
+    }}).then(({register, request}) => {
+      operations[0] = request;
+      operations[1] = register;
       errored = false;
       _log.info('Connection recovered');
     })
@@ -95,17 +95,17 @@ export default async function setup<S, M extends S, R extends S>({
 
   conn.on('close', onError);
 
-  // If the connection failed there may be additions from previous connection, so add them again.
-  await Promise.all(Object.keys(additions).map(k => {
-    const addition = additions[k];
-    return operations[1](addition);
+  // If the connection failed there may be subscriptions from previous connection, so add them again.
+  await Promise.all(Object.keys(registrations).map(k => {
+    const registration = registrations[k];
+    return operations[1](registration);
   }));
 
   return {
-    async add(opts: AddOpts<M, R>): Promise<void> {
+    async register(opts: RegisterOpts<M, R>): Promise<void> {
       const id = `${opts.pattern}-${opts.namespace || ''}`;
-      if (!additions[id]) {
-        additions[id] = opts;
+      if (!registrations[id]) {
+        registrations[id] = opts;
       }
       if (errored) {
         return Promise.resolve();
@@ -113,7 +113,7 @@ export default async function setup<S, M extends S, R extends S>({
         return operations[1](opts);
       }
     },
-    async act(opts: ActOpts<M>): Promise<R> {
+    async request(opts: RequestOpts<M>): Promise<R> {
       if (errored) {
         return Promise.reject(new Error('Broken pipe'));
       } else {
