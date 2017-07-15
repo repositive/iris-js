@@ -7,7 +7,6 @@ In Greek mythology, Iris ([/ˈaɪrᵻs/][wikipedia]) is the personification of t
 * [Purpose](#purpose)  
 * [Installation](#installation)  
 * [Usage](#usage)  
-* [Internals and Architecture](#internals-and-architecture)
 
 ## Purpose ##
 
@@ -102,7 +101,7 @@ interface RequestOpts<M> {
 
 If the operation is successful it will return `Promise<R>` where R is the output of the remote handler.
 
-## Examples
+### Examples
 
 **Server**
 ```ts
