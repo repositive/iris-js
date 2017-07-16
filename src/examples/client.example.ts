@@ -1,12 +1,7 @@
 
 import irisSetup from '..';
 
-const config = {
-  uri: process.env.RABBIT_URI,
-  exchange: 'test'
-};
-
-irisSetup(config)
+irisSetup({})
   .then(({ request }) => {
 
     async function work() {

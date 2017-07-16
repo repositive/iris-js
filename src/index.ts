@@ -6,9 +6,10 @@ import {SerializationOpts} from './serialization';
 import serialization from './serialization';
 
 export interface LibOpts<S> {
-  uri: string;
-  exchange: string;
+  uri?: string;
+  exchange?: string;
   registrations?: {[k: string]: RegisterOpts<any, any>};
+  namespace?: string;
   _serialization?: SerializationOpts<S>;
   _setupRequest?: typeof setupRequest;
   _setupRegister?: typeof setupRegister;
@@ -17,7 +18,7 @@ export interface LibOpts<S> {
   _log?: typeof console;
 }
 
-export function restartConnection<S>({
+export function restartConnection<S extends any>({
   opts,
   timeout = 100,
   attempt = 0,
@@ -46,27 +47,38 @@ export function restartConnection<S>({
   });
 }
 
-export default async function setup<S, M extends S, R extends S>({
-  uri,
-  exchange,
-  registrations = {},
-  _serialization = serialization,
-  _setupRequest = setupRequest,
-  _setupRegister = setupRegister,
-  _connect = connect,
-  _restartConnection = restartConnection,
-  _log = console
-}: LibOpts<S>) {
+const defaults = {
+  uri: 'amqp://guest:guest@localhost',
+  exchange: 'iris',
+  namespace: 'default',
+  registrations: {},
+  _serialization: serialization,
+  _setupRequest: setupRequest,
+  _setupRegister: setupRegister,
+  _connect: connect,
+  _restartConnection: restartConnection,
+  _log: console
+};
+
+export default async function setup<S>(opts: LibOpts<S> = defaults) {
+  const _opts = {...defaults, ...opts};
+  const {
+    uri, exchange,
+    registrations,
+    _serialization, _setupRequest,
+    _setupRegister, _connect,
+    _restartConnection, _log
+  } = _opts;
 
   const common_options = {durable: true, noAck: true};
   const conn = await _connect(uri, common_options);
 
   const channel = await conn.createChannel();
 
-  const options = Object.assign({}, {ch: channel}, arguments[0]);
+  const options = {ch: channel, ..._opts};
   const operations = await Promise.all([
-    _setupRequest<S, M, R>(options as SetupRequestOpts<S>),
-    _setupRegister<S, M, R>(options as SetupRegisterOpts<S>)
+    _setupRequest<S>(options as SetupRequestOpts<S>),
+    _setupRegister<S>(options as SetupRegisterOpts<S>)
   ]);
 
   let errored = false;
@@ -75,13 +87,7 @@ export default async function setup<S, M extends S, R extends S>({
     errored = true;
     _log.warn(`Connection errored...`);
 
-    _restartConnection({opts: {
-      uri, exchange,
-      registrations,
-      _serialization, _setupRequest,
-      _setupRegister, _connect,
-      _restartConnection, _log
-    }}).then(({register, request}) => {
+    _restartConnection({opts: _opts}).then(({register, request}) => {
       operations[0] = request;
       operations[1] = register;
       errored = false;
@@ -102,22 +108,22 @@ export default async function setup<S, M extends S, R extends S>({
   }));
 
   return {
-    async register(opts: RegisterOpts<M, R>): Promise<void> {
-      const id = `${opts.pattern}-${opts.namespace || ''}`;
+    async register<P extends S, R extends S>(ropts: RegisterOpts<P, R>): Promise<void> {
+      const id = `${ropts.pattern}-${ropts.namespace || ''}`;
       if (!registrations[id]) {
-        registrations[id] = opts;
+        registrations[id] = ropts;
       }
       if (errored) {
         return Promise.resolve();
       } else {
-        return operations[1](opts);
+        return operations[1](ropts);
       }
     },
-    async request(opts: RequestOpts<M>): Promise<R> {
+    async request<P extends S, R extends S>(ropts: RequestOpts<P>): Promise<R> {
       if (errored) {
         return Promise.reject(new Error('Broken pipe'));
       } else {
-        return operations[0](opts);
+        return operations[0](ropts) as Promise<R>;
       }
     }
   };

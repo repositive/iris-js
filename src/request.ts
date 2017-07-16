@@ -4,9 +4,9 @@ import { all } from 'bluebird';
 import {Channel, Message} from 'amqplib';
 import {v4} from 'uuid';
 
-export interface RequestOpts<M> {
+export interface RequestOpts<P> {
   pattern: string;
-  payload: M;
+  payload?: P;
   timeout?: number;
 }
 
@@ -31,7 +31,7 @@ export interface SetupRequestOpts<S> {
   _log?: typeof console;
 }
 
-export async function setupRequest<S, M, R>({
+export async function setupRequest<S>({
   ch,
   exchange,
   _serialization = serialization,
@@ -40,14 +40,14 @@ export async function setupRequest<S, M, R>({
   _log = console
 }: SetupRequestOpts<S>) {
 
-  return async function request({
+  return async function request<P, R>({
     pattern,
     payload,
     timeout = 100
-  }: RequestOpts<M>): Promise<R> {
+  }: RequestOpts<P>): Promise<R> {
     const q = await ch.assertQueue('', {exclusive: true});
     const correlation  = v4();
-    const content = _serialization.serialize(payload);
+    const content = payload ? _serialization.serialize(payload) : Buffer.alloc(0);
     ch.publish(exchange, pattern, content, {
       correlationId: correlation,
       replyTo: q.queue
