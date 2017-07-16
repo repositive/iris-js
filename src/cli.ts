@@ -1,7 +1,6 @@
 import * as yargs from 'yargs';
 import irisSetup from '.';
 
-const uri = 'amqp://repositive:repositive@localhost';
 
 async function handler() {
   const args = yargs
@@ -14,23 +13,28 @@ async function handler() {
         alias: 'p',
         default: '{}'
     })
+    .option('uri', {
+      describe: 'Location of the exchange',
+        type: 'string',
+        alias: 'u'
+    })
     .option('exchange', {
       describe: 'The exchange used',
         type: 'string',
-        alias: 'e',
-        default: 'iris'
+        alias: 'e'
     })
     .argv;
 
-  const {_, p, e} = args;
+  const {_, p, e, u} = args;
   const [pattern] = _;
   const payload = p;
+  const uri = u || 'amqp://guest:guest@localhost';
 
   if (!pattern) {
     console.log('You must specify a pattern');
   } else {
     console.log({payload, pattern});
-    const iris = await irisSetup({uri, exchange: e});
+    const iris = await irisSetup({uri, exchange: e || 'iris'});
     const res =  await iris.request( {pattern, payload});
 
     console.log(res);
