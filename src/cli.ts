@@ -33,7 +33,6 @@ async function handler() {
   if (!pattern) {
     console.log('You must specify a pattern');
   } else {
-    console.log({payload, pattern});
     const _serialization = {
       parse: (b: Buffer) => b.toString(),
       serialize: (str: string) => Buffer.from(str)
