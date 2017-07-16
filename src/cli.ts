@@ -34,7 +34,11 @@ async function handler() {
     console.log('You must specify a pattern');
   } else {
     console.log({payload, pattern});
-    const iris = await irisSetup({uri, exchange: e || 'iris'});
+    const _serialization = {
+      parse: (b: Buffer) => b.toString(),
+      serialize: (str: string) => Buffer.from(str)
+    };
+    const iris = await irisSetup({uri, exchange: e || 'iris', _serialization});
     const res =  await iris.request( {pattern, payload});
 
     console.log(res);
@@ -42,7 +46,10 @@ async function handler() {
   }
 }
 
-handler().catch( console.error);
+handler().catch((err) => {
+  console.error(err.message);
+  process.exit(1);
+});
 /*
 let linterGod = yargs
   .strict()
