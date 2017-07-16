@@ -97,15 +97,17 @@ test('Tests setup funcion' , (t: Test) => {
     await result.request({pattern: '', payload: {}});
     t.ok(opts.steps.request.calledOnce, 'Returns an initialized act function');
 
-    const on = opts.steps.connectResponse.on.getCall(0);
+    const on0 = opts.steps.connectResponse.on.getCall(0);
+    const on1 = opts.steps.connectResponse.on.getCall(1);
 
-    t.equals(on && on.args[0], 'close', 'It adds a handlers to connection close');
+    t.equals(on0 && on0.args[0], 'error', 'It adds a handler to connection error');
+    t.equals(on1 && on1.args[0], 'close', 'It adds a handler to connection close');
 
     const register = spy();
     const request = spy();
     opts.mocks._restartConnection.returns(Promise.resolve({request, register}));
 
-    on.args[1]();
+    on0.args[1]();
 
     t.ok(opts.mocks._restartConnection.calledOnce, 'Restart connection is called on connection close');
 
@@ -119,7 +121,7 @@ test('Tests setup funcion' , (t: Test) => {
 
     opts.mocks._restartConnection.returns(Promise.reject({}));
 
-    on.args[1]();
+    on0.args[1]();
 
     await result.register({pattern: '', handler: spy()}).then(() => {
       t.ok(true, 'Subscribe works on errored library');

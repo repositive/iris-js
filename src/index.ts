@@ -84,21 +84,24 @@ export default async function setup<S>(opts: LibOpts<S> = defaults) {
   let errored = false;
 
   function onError(error: Error) {
-    errored = true;
-    _log.warn(`Connection errored...`);
+    if (!errored) {
+      errored = true;
+      _log.warn(`Connection errored...`);
 
-    _restartConnection({opts: _opts}).then(({register, request}) => {
-      operations[0] = request;
-      operations[1] = register;
-      errored = false;
-      _log.info('Connection recovered');
-    })
-    .catch((err) => {
-      _log.error(err);
-      /* This promise should never reject */
-    });
+      _restartConnection({opts: _opts}).then(({register, request}) => {
+        operations[0] = request;
+        operations[1] = register;
+        errored = false;
+        _log.info('Connection recovered');
+      })
+      .catch((err) => {
+        _log.error(err);
+        /* This promise should never reject */
+      });
+    }
   }
 
+  conn.on('error', onError);
   conn.on('close', onError);
 
   // If the connection failed there may be subscriptions from previous connection, so add them again.
