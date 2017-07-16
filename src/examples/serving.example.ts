@@ -1,11 +1,6 @@
 
 import irisSetup from '..';
 
-const config = {
-  uri: process.env.RABBIT_URI,
-  exchange: 'test'
-};
-
 async function wait(time: number) {
   return new Promise<void>((resolve, reject) => {
     setTimeout(
@@ -17,11 +12,11 @@ async function wait(time: number) {
   });
 }
 
-irisSetup<any, any, any>(config)
+irisSetup({})
   .then(({ register }) => {
 
-    return register({pattern: 'test', async handler({payload}) {
-      const {times} = payload;
+    return register<{times: number}, any>({pattern: 'test', async handler({payload}) {
+      const {times} = payload || {times: 1};
 
       const rand = Math.random();
       if (rand > 0.8) {
@@ -36,6 +31,6 @@ irisSetup<any, any, any>(config)
     }});
   })
   .then(() => {
-    console.log(`Connection stablished using the ${config.exchange} exchange`);
+    console.log(`Connection stablished`);
   })
   .catch(console.error);

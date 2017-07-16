@@ -1,10 +1,5 @@
 import irisSetup from '..';
 
-const config = {
-  uri: process.env.RABBIT_URI,
-  exchange: 'test'
-};
-
 const readLine = require('readline');
 
 const rl = readLine.createInterface({
@@ -87,7 +82,7 @@ async function init(
   _question?: typeof question,
   _irisSetup?: typeof irisSetup
 }): Promise<void> {
-  const {request, register} = await _irisSetup(config);
+  const {request, register} = await _irisSetup({namespace: 'chat'});
 
   const username = await _question({query: 'Your username: '});
 

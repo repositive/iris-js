@@ -49,15 +49,15 @@ import setupIris from `@repositive/iris`;
 Provide to iris the basic information
 
 ```ts
-setupIris(options: LibOpts)
+setupIris(options?: LibOpts)
 ```  
 
 Where LibOpts is:
 ```ts
 export interface LibOpts {
-  uri: string; // URI of rabbitMQ ~"amqp://user:password@host"~
-  exchange: string; // Exchange use for routing ~"iris"~
-  namespace?: string; // Namespace used by default by all registrations ~"servicename"~
+  uri?: string; // URI of rabbitMQ defaults to ~"amqp://guest:guest@localhost"~
+  exchange?: string; // Exchange use for routing defaults to ~"iris"~
+  namespace?: string; // Namespace used by default by all registrations defaults to ~"default"~
 }
 ```
 
@@ -105,7 +105,7 @@ If the operation is successful it will return `Promise<R>` where R is the output
 
 **Server**
 ```ts
-irisSetup(config)
+irisSetup()
   .then(({ register }) => {
 
     return register({pattern: 'test', async handler({payload}) {
@@ -123,7 +123,7 @@ irisSetup(config)
 
 **Client**
 ```ts
-irisSetup(config)
+irisSetup()
   .then(({ request }) => {
 
     async function work() {
