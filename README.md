@@ -6,7 +6,8 @@ In Greek mythology, Iris ([/ˈaɪrᵻs/][wikipedia]) is the personification of t
 
 * [Purpose](#purpose)  
 * [Installation](#installation)  
-* [Usage](#usage)  
+* [Usage](#usage)
+* [CLI Tool](#cli-tool)
 
 ## Purpose ##
 
@@ -27,8 +28,8 @@ We aim to provide a high level of extensibility enabling the implementation of c
 
 ## Installation
 
-```
-npm install @repositive/iris
+```bash
+$ npm install @repositive/iris
 ```
 
 ## Usage
@@ -132,6 +133,26 @@ irisSetup()
     }
 
   });
+```
+
+
+## CLI Tool
+
+The library ships also with a cli utility to help to interact with the services.
+
+**Iris in global mode**
+```bash
+$ npm install -g @repositive/iris
+```
+
+**Options available**
+```bash
+$ iris
+```
+
+**Usage**
+```bash
+$ iris pattern.to.act.on -p '{"contentof": "payload"}'
 ```
 
 [wikipedia]: https://en.wikipedia.org/wiki/Iris_(mythology)

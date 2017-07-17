@@ -1,43 +1,42 @@
 import * as yargs from 'yargs';
 import irisSetup from '.';
 
-
 async function handler() {
-  const args = yargs
+  const yarg = yargs
     .strict()
-    .usage('Usage: $0  <pattern> [payload]')
+    .usage('Usage: $0  <pattern> [...opts]')
     .nargs('pattern', 1)
     .option('payload', {
       describe: 'Object to send to the patternt your requesting',
-        type: 'string',
-        alias: 'p',
-        default: '{}'
+      type: 'string',
+      alias: 'p'
     })
     .option('uri', {
       describe: 'Location of the exchange',
-        type: 'string',
-        alias: 'u'
+      type: 'string',
+      alias: 'u',
+      default: 'amqp://guest:guest@localhost'
     })
     .option('exchange', {
       describe: 'The exchange used',
-        type: 'string',
-        alias: 'e'
-    })
-    .argv;
+      type: 'string',
+      alias: 'e',
+      default: 'iris'
+    });
 
-  const {_, p, e, u} = args;
+  const args = yarg.argv;
+
+  const {_, payload, exchange, uri} = args;
   const [pattern] = _;
-  const payload = p;
-  const uri = u || 'amqp://guest:guest@localhost';
 
   if (!pattern) {
-    console.log('You must specify a pattern');
+    yarg.showHelp();
   } else {
     const _serialization = {
       parse: (b: Buffer) => b.toString(),
       serialize: (str: string) => Buffer.from(str)
     };
-    const iris = await irisSetup({uri, exchange: e || 'iris', _serialization});
+    const iris = await irisSetup({uri, exchange, _serialization});
     const res =  await iris.request( {pattern, payload});
 
     console.log(res);
