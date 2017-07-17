@@ -49,24 +49,3 @@ handler().catch((err) => {
   console.error(err.message);
   process.exit(1);
 });
-/*
-let linterGod = yargs
-  .strict()
-  .version()
-  .help()
-  .alias('help', 'h')
-  .usage('Usage:\n  rps <cmd>')
-  .option('noprompt', {
-    alias: ['y'],
-    describe: 'Do not ask for confirmation',
-    default: false,
-    type: 'boolean'
-  })
-  .option('verbose', {
-    <Down>alias: ['v'],
-    describe: 'Verbose mode',
-    default: false,
-    type: 'boolean'
-  })
-  .argv;
-*/

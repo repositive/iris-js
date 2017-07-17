@@ -8,7 +8,8 @@
     "iris": "iris.sh"
   },
   "files": [
-    "dist"
+    "dist",
+    "iris.sh"
   ],
   "scripts": {
     "precommit": "npm run lint",
