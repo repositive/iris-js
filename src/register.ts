@@ -16,7 +16,7 @@ export interface HandlerOpts<P> {
 
 export interface RegisterOpts<P, R> {
   pattern: string;
-  handler: (params: (HandlerOpts<P>)) => Promise<R | undefined>;
+  handler: (params: (HandlerOpts<P>)) => Promise<R | void>;
   namespace?: string;
 }
 
@@ -56,7 +56,7 @@ export async function setupRegister<S>({
                 if (msg.properties && msg.properties.replyTo && msg.properties.correlationId) {
                   return ch.sendToQueue(
                     msg.properties.replyTo,
-                    serialization.serialize(response),
+                    response !== undefined && serialization.serialize(response) || Buffer.from([]),
                     {correlationId: msg.properties.correlationId, headers: {code: 0}}
                   );
                 }

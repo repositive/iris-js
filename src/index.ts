@@ -111,7 +111,7 @@ export default async function setup<S>(opts: LibOpts<S> = defaults) {
   }));
 
   return {
-    async register<P extends S, R extends S>(ropts: RegisterOpts<P, R>): Promise<void> {
+    async register<P extends S, R extends S | void>(ropts: RegisterOpts<P, R>): Promise<void> {
       const id = `${ropts.pattern}-${ropts.namespace || ''}`;
       if (!registrations[id]) {
         registrations[id] = ropts;
@@ -122,7 +122,7 @@ export default async function setup<S>(opts: LibOpts<S> = defaults) {
         return operations[1](ropts);
       }
     },
-    async request<P extends S, R extends S>(ropts: RequestOpts<P>): Promise<R> {
+    async request<P extends S, R extends S | undefined>(ropts: RequestOpts<P>): Promise<R> {
       if (errored) {
         return Promise.reject(new Error('Broken pipe'));
       } else {

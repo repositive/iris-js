@@ -68,12 +68,16 @@ export async function setupRequest<S>({
 
       ch.consume(q.queue, (msg?: Message) => {
         if (msg && msg.properties.correlationId === correlation) {
-          _clearTimeout(time);
-          ch.deleteQueue(q.queue);
-          if (msg.properties.headers.code === 0) {
-            resolve(_serialization.parse(msg.content));
-          } else {
-            reject(new RPCError(msg.content.toString()));
+          try {
+            _clearTimeout(time);
+            ch.deleteQueue(q.queue);
+            if (msg.properties.headers.code === 0) {
+              resolve(_serialization.parse(msg.content));
+            } else {
+              reject(new RPCError(msg.content.toString()));
+            }
+          } catch(err) {
+            reject(err);
           }
           ch.ack(msg);
         }

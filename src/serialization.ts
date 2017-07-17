@@ -9,7 +9,11 @@ const serialization: SerializationOpts<any> = {
     return Buffer.from(JSON.stringify(o));
   },
   parse(b: Buffer) {
-    return JSON.parse(b.toString());
+    if (b.length === 0) {
+      return undefined;
+    } else {
+      return JSON.parse(b.toString());
+    }
   }
 };
 
