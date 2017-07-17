@@ -42,7 +42,6 @@ export async function setupRegister<S>({
       ch.consume(
         queueName,
         (msg: Message) => {
-          const content: P = msg.content.length > 0 ? serialization.parse(msg.content) : undefined;
           function onError(err?: Error) {
             return ch.sendToQueue(
               msg.properties.replyTo,
@@ -50,8 +49,8 @@ export async function setupRegister<S>({
               {correlationId: msg.properties.correlationId, headers: {code: 1}}
             );
           }
-
           try {
+            const content: P = msg.content.length > 0 ? serialization.parse(msg.content) : undefined;
             return handler({payload: content})
               .then((response: R) => {
                 if (msg.properties && msg.properties.replyTo && msg.properties.correlationId) {
