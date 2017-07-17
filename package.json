@@ -4,8 +4,12 @@
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "iris": "iris.sh"
+  },
   "files": [
-    "dist"
+    "dist",
+    "iris.sh"
   ],
   "scripts": {
     "precommit": "npm run lint",
@@ -13,7 +17,7 @@
     "startDev": "nodemon --watch src/main --watch package.json -e ts,json -q -x 'rm -fr dist && echo \"\\n============\\nCOMPILING...\\n============\\n\\n\" && tsc --outDir dist || return 0 && node dist/main/index.js'",
     "make": "rm -fr dist && tsc",
     "lint": "tslint -c tslint.json src/**/*.ts",
-    "test": "nyc --reporter lcov tape $(find dist -name '*.js' ! -name '*.example.js') | tap-spec",
+    "test": "nyc --reporter lcov tape $(find dist -name '*.js' ! -name '*.example.js' ! -name 'cli.js') | tap-spec",
     "coverage": "nyc check-coverage --lines 80 --functions 80 --branches 80",
     "report-coverage": "cat ./coverage/lcov.info | codecov"
   },
@@ -36,7 +40,8 @@
   "dependencies": {
     "amqplib": "0.5.1",
     "bluebird": "3.5.0",
-    "uuid": "3.1.0"
+    "uuid": "3.1.0",
+    "yargs": "8.0.2"
   },
   "devDependencies": {
     "@repositive/typescript": "1.1.2",
@@ -47,6 +52,7 @@
     "@types/sinon": "2.3.1",
     "@types/tape": "4.2.30",
     "@types/uuid": "3.0.0",
+    "@types/yargs": "8.0.0",
     "codecov": "2.2.0",
     "husky": "0.13.4",
     "nodemon": "1.11.0",
