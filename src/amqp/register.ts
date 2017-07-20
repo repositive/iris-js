@@ -1,38 +1,34 @@
-import { SerializationOpts } from './serialization';
-import serialization from './serialization';
 import {Channel, Message} from 'amqplib';
 import {all} from 'bluebird';
 
-export interface SetupRegisterOpts<S> {
+export interface SetupRegisterOpts {
   ch: Channel;
   exchange: string;
   namespace?: string;
-  _serialization?: SerializationOpts<S>;
 }
 
-export interface HandlerOpts<P> {
-  payload: P | undefined;
+export interface HandlerOpts {
+  payload: Buffer;
 }
 
-export interface RegisterOpts<P, R> {
+export interface RegisterOpts {
   pattern: string;
-  handler: (params: (HandlerOpts<P>)) => Promise<R | void>;
+  handler: (params: (HandlerOpts)) => Promise<Buffer | void>;
   namespace?: string;
 }
 
-export async function setupRegister<S>({
+export async function setupRegister({
   exchange,
   ch,
-  namespace = 'default',
-  _serialization = serialization
-}: SetupRegisterOpts<S>) {
+  namespace = 'default'
+}: SetupRegisterOpts) {
   await ch.assertExchange(exchange, 'topic', {durable: true});
 
   const _namespace = arguments[0].namespace;
-  return async function subscribe<P extends S, R extends S>({
+  return async function subscribe({
     pattern,
     handler
-  }: RegisterOpts<P, R>): Promise<void> {
+  }: RegisterOpts): Promise<void> {
     const __namespace = arguments[0].namespace || namespace;
     const queueName = `${__namespace}-${pattern}`;
     return await all([
@@ -50,13 +46,12 @@ export async function setupRegister<S>({
             );
           }
           try {
-            const content: P = msg.content.length > 0 ? serialization.parse(msg.content) : undefined;
-            return handler({payload: content})
-              .then((response: R) => {
+            return handler({payload: msg.content})
+              .then((response?: Buffer) => {
                 if (msg.properties && msg.properties.replyTo && msg.properties.correlationId) {
                   return ch.sendToQueue(
                     msg.properties.replyTo,
-                    response !== undefined && serialization.serialize(response) || Buffer.from([]),
+                    response || Buffer.alloc(0),
                     {correlationId: msg.properties.correlationId, headers: {code: 0}}
                   );
                 }
