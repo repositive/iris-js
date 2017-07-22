@@ -6,7 +6,7 @@ import {curry, pipeP, lensProp, over} from 'ramda';
 export const IrisAMQP = _IrisAMQP;
 
 type F1<T, R> = (t: T) => R;
-const toPromise = curry(function toPromise<T, R>(f: F1<T, R>, val: T) {
+export const toPromise = curry(function toPromise<T, R>(f: F1<T, R>, val: T) {
   return Promise.resolve(f(val));
 });
 

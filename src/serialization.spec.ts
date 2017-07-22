@@ -1,7 +1,6 @@
 import * as test from 'tape';
 import {Test} from 'tape';
 import { stub, spy } from 'sinon';
-import iris from './index';
 import { serialize, parse } from './serialization';
 
 
