@@ -6,7 +6,7 @@ import {v4} from 'uuid';
 export interface LibOpts {
   uri?: string;
   exchange?: string;
-  registrations?: {[k: string]: RegisterOpts<any, any>};
+  registrations?: {[k: string]: RegisterOpts};
   namespace?: string;
   _setupRequest?: typeof setupRequest;
   _setupRegister?: typeof setupRegister;
@@ -15,7 +15,7 @@ export interface LibOpts {
   _log?: typeof console;
 }
 
-export function restartConnection<S extends any>({
+export function restartConnection({
   opts,
   timeout = 100,
   attempt = 0,
@@ -122,7 +122,7 @@ export default async function setup(opts: LibOpts = defaults) {
       if (errored) {
         return Promise.reject(new Error('Broken pipe'));
       } else {
-        return operations[0](ropts) as Promise<R>;
+        return operations[0](ropts) as Promise<Buffer>;
       }
     }
   };

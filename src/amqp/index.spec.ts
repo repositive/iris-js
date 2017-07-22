@@ -94,7 +94,7 @@ test('Tests setup funcion' , (t: Test) => {
     opts.steps.register.reset();
     await result.register({pattern: '', handler: spy()});
     t.ok(opts.steps.register.calledOnce, 'Returns an initialized register function');
-    await result.request({pattern: '', payload: {}});
+    await result.request({pattern: '', payload: Buffer.from('{}')});
     t.ok(opts.steps.request.calledOnce, 'Returns an initialized act function');
 
     const on0 = opts.steps.connectResponse.on.getCall(0);
@@ -116,7 +116,7 @@ test('Tests setup funcion' , (t: Test) => {
     await result.register({pattern: '', handler: spy()});
     t.ok(register.calledOnce, 'After successsfull restart register is reasigned');
 
-    await result.request({pattern: '', payload: {}});
+    await result.request({pattern: '', payload: Buffer.from('')});
     t.ok(request.calledOnce, 'After successsfull restart act is reasigned');
 
     opts.mocks._restartConnection.returns(Promise.reject({}));
@@ -127,7 +127,7 @@ test('Tests setup funcion' , (t: Test) => {
       t.ok(true, 'Subscribe works on errored library');
     });
 
-    await result.request({pattern: '', payload: {}})
+    await result.request({pattern: '', payload: Buffer.alloc(0)})
       .then(() => {
         t.ok(false, 'Emit should fail on errored library');
       })

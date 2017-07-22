@@ -1,4 +1,6 @@
-declare namespace R {
+import * as R from 'ramda';
+
+declare module 'ramda' {
   interface Static {
         /**
          * Creates a new function that runs each of the functions supplied as parameters in turn,
@@ -81,9 +83,4 @@ declare namespace R {
                                                          fn6: (x: T5) => Promise<T6>,
                                                          fn7: (x: T7) => Promise<T8>): (x0: V0, x1: V1, x2: V2) => Promise<T8>;
   }
-}
-
-declare module 'ramda' {
-  let ramda: R.Static;
-  export = ramda;
 }

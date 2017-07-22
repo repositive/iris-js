@@ -32,14 +32,10 @@ async function handler() {
   if (!pattern) {
     yarg.showHelp();
   } else {
-    const _serialization = {
-      parse: (b: Buffer) => b.toString(),
-      serialize: (str: string) => Buffer.from(str)
-    };
-    const iris = await irisSetup({uri, exchange, _serialization});
-    const res =  await iris.request( {pattern, payload});
+    const iris = await irisSetup({uri, exchange});
+    const res =  await iris.request( {pattern, payload: Buffer.from(payload)});
 
-    console.log(res);
+    console.log(res && res.toString());
     process.exit(0);
   }
 }

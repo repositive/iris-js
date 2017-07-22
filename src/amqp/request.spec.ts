@@ -40,7 +40,7 @@ test('Test request', (t: Test) => {
     const request = await pSetupRequest;
 
     const pattern = '';
-    const payload = {};
+    const payload = Buffer.from('');
 
     const pResult1 = request({pattern, payload});
 

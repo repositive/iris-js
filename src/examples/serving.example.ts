@@ -15,7 +15,9 @@ async function wait(time: number) {
 irisSetup({})
   .then(({ register }) => {
 
-    return register<{times: number}, any>({pattern: 'test', async handler({payload}) {
+    type TInput = {times: number};
+    type TOutput = {result: number};
+    return register<TInput, TOutput>({pattern: 'test', async handler({payload}) {
       const {times} = payload || {times: 1};
 
       const rand = Math.random();
