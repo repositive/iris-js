@@ -1,5 +1,5 @@
 import * as yargs from 'yargs';
-import irisSetup from '.';
+import {IrisAMQP} from '.';
 
 async function handler() {
   const yarg = yargs
@@ -32,8 +32,8 @@ async function handler() {
   if (!pattern) {
     yarg.showHelp();
   } else {
-    const iris = await irisSetup({uri, exchange});
-    const res =  await iris.request( {pattern, payload: Buffer.from(payload)});
+    const iris = await IrisAMQP({uri, exchange});
+    const res =  await iris.request( {pattern, payload: payload ? Buffer.from(payload) : Buffer.alloc(0)});
 
     console.log(res && res.toString());
     process.exit(0);

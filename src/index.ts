@@ -1,7 +1,9 @@
-import IrisAMQP from './amqp';
+import _IrisAMQP from './amqp';
 import {LibOpts as IrisAMQPLibOpts} from './amqp';
 import {parse, serialize} from './serialization';
 import {curry, pipeP, lensProp, over} from 'ramda';
+
+export const IrisAMQP = _IrisAMQP;
 
 type F1<T, R> = (t: T) => R;
 const toPromise = curry(function toPromise<T, R>(f: F1<T, R>, val: T) {
