@@ -3,9 +3,12 @@ export interface SerializationOpts<T> {
   parse: (b: Buffer) => T;
 }
 
-// TODO This should be SerializationOptions of type <JSON> check how to do this.
-export function serialize(o: any) {
-  return Buffer.from(JSON.stringify(o));
+export function serialize(o?: any) {
+  if (o === undefined) {
+    return Buffer.alloc(0);
+  } else {
+    return Buffer.from(JSON.stringify(o));
+  }
 }
 
 export function parse(b?: Buffer) {
