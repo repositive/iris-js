@@ -1,5 +1,6 @@
 # @repositive/iris
 
+[![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://choosealicense.com/licenses/lgpl-3.0/)
 [![codecov](https://codecov.io/gh/repositive/iris-js/branch/master/graph/badge.svg)](https://codecov.io/gh/repositive/iris-js)
 
 In Greek mythology, Iris ([/ˈaɪrᵻs/][wikipedia]) is the personification of the rainbow and messenger of the gods.
