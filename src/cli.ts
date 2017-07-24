@@ -4,6 +4,8 @@ import {IrisAMQP} from '.';
 async function handler() {
   const yarg = yargs
     .strict()
+    .version()
+    .alias('version', 'v')
     .usage('Usage: $0  <pattern> [...opts]')
     .nargs('pattern', 1)
     .option('payload', {
