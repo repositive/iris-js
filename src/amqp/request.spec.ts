@@ -40,7 +40,7 @@ test('Test request', (t: Test) => {
     const request = await pSetupRequest;
 
     const pattern = '';
-    const payload = {};
+    const payload = Buffer.from('');
 
     const pResult1 = request({pattern, payload});
 
@@ -62,7 +62,7 @@ test('Test request', (t: Test) => {
 
     await wait(0);
     const pCall = ch.publish.getCall(0);
-    t.deepEquals(ch.publish.calledOnce && pCall.args[2], Buffer.from(JSON.stringify(payload)), 'Publishes the payload');
+    t.deepEquals(ch.publish.calledOnce && pCall.args[2], payload, 'Publishes the payload');
     const cCall = ch.consume.getCall(0);
     t.equals(ch.consume.calledOnce && ch.consume.getCall(0).args[0], 'test', 'Consumes the queue');
 
@@ -74,7 +74,7 @@ test('Test request', (t: Test) => {
 
     await pResult2
       .then((result) => {
-        t.deepEquals({r}, result, 'On success get the expected result');
+        t.deepEquals(Buffer.from(JSON.stringify({r})), result, 'On success get the expected result');
         t.ok(ch.deleteQueue.calledOnce, 'Deletes the queue on message received');
         t.ok(ch.ack.calledOnce, 'Acknowledges the message reception');
       })

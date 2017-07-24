@@ -1,12 +1,10 @@
-import { SerializationOpts } from './serialization';
-import serialization from './serialization';
 import { all } from 'bluebird';
 import {Channel, Message} from 'amqplib';
 import {v4} from 'uuid';
 
-export interface RequestOpts<P> {
+export interface RequestOpts {
   pattern: string;
-  payload?: P;
+  payload?: Buffer;
   timeout?: number;
 }
 
@@ -22,10 +20,9 @@ export class RPCError extends Error {
   }
 }
 
-export interface SetupRequestOpts<S> {
+export interface SetupRequestOpts {
   ch: Channel;
   exchange: string;
-  _serialization?: SerializationOpts<S>;
   _setTimeout?: typeof setTimeout;
   _clearTimeout?: typeof clearTimeout;
   _log?: typeof console;
@@ -34,26 +31,25 @@ export interface SetupRequestOpts<S> {
 export async function setupRequest<S>({
   ch,
   exchange,
-  _serialization = serialization,
   _setTimeout = setTimeout,
   _clearTimeout = clearTimeout,
   _log = console
-}: SetupRequestOpts<S>) {
+}: SetupRequestOpts) {
 
-  return async function request<P, R>({
+  return async function request({
     pattern,
     payload,
     timeout = 100
-  }: RequestOpts<P>): Promise<R> {
+  }: RequestOpts): Promise<Buffer | void> {
     const q = await ch.assertQueue('', {exclusive: true});
     const correlation  = v4();
-    const content = payload ? _serialization.serialize(payload) : Buffer.alloc(0);
+    const content = payload ? payload : Buffer.alloc(0);
     ch.publish(exchange, pattern, content, {
       correlationId: correlation,
       replyTo: q.queue
     });
 
-    return new Promise<R>((resolve, reject) => {
+    return new Promise<Buffer>((resolve, reject) => {
 
       const time = _setTimeout(
         () => {
@@ -72,7 +68,7 @@ export async function setupRequest<S>({
             _clearTimeout(time);
             ch.deleteQueue(q.queue);
             if (msg.properties.headers.code === 0) {
-              resolve(_serialization.parse(msg.content));
+              resolve(msg.content);
             } else {
               reject(new RPCError(msg.content.toString()));
             }

@@ -1,133 +1,51 @@
-import {connect, Channel} from 'amqplib';
-import {SetupRegisterOpts, RegisterOpts, setupRegister} from './register';
-import {SetupRequestOpts, RequestOpts, setupRequest} from './request';
-import {v4} from 'uuid';
-import {SerializationOpts} from './serialization';
-import serialization from './serialization';
+import _IrisAMQP from './amqp';
+import {LibOpts as IrisAMQPLibOpts} from './amqp';
+import {parse, serialize} from './serialization';
+import {curry, pipeP, lensProp, over} from 'ramda';
 
-export interface LibOpts<S> {
-  uri?: string;
-  exchange?: string;
-  registrations?: {[k: string]: RegisterOpts<any, any>};
-  namespace?: string;
-  _serialization?: SerializationOpts<S>;
-  _setupRequest?: typeof setupRequest;
-  _setupRegister?: typeof setupRegister;
-  _connect?: typeof connect;
-  _restartConnection?: typeof restartConnection;
-  _log?: typeof console;
-}
+export const IrisAMQP = _IrisAMQP;
 
-export function restartConnection<S extends any>({
-  opts,
-  timeout = 100,
-  attempt = 0,
-  _setup = setup,
-  _setTimeout = setTimeout
-}: {
-  opts: LibOpts<S>,
-  timeout?: number,
-  attempt?: number,
-  _setup?: typeof setup,
-  _setTimeout?: typeof setTimeout
-}) {
-  return new Promise((resolve, reject) => {
-    const _log = opts._log || console;
-    const _restartConnection = opts._restartConnection || restartConnection;
+type F1<T, R> = (t: T) => R;
+export const toPromise = curry(function toPromise<T, R>(f: F1<T, R>, val: T) {
+  return Promise.resolve(f(val));
+});
 
-    _log.info(`Retrying connection in ${attempt * timeout}ms`);
-    _setTimeout(
-      () => {
-        resolve(_setup(opts).catch((innerErr: Error) => {
-          return _restartConnection({opts, timeout, _setup, attempt: attempt <= 100 ? attempt + 10 : attempt});
-        }));
-      },
-      attempt * timeout
-    );
-  });
-}
+const lensPayload = lensProp('payload');
+const lensHandler = lensProp('handler');
+const serializePayload = toPromise(over(lensPayload, serialize));
+const parsePayload = toPromise(over(lensPayload, parse));
 
-const defaults = {
-  uri: 'amqp://guest:guest@localhost',
-  exchange: 'iris',
-  namespace: 'default',
-  registrations: {},
-  _serialization: serialization,
-  _setupRequest: setupRequest,
-  _setupRegister: setupRegister,
-  _connect: connect,
-  _restartConnection: restartConnection,
-  _log: console
-};
+const serializeP = toPromise(serialize);
 
-export default async function setup<S>(opts: LibOpts<S> = defaults) {
-  const _opts = {...defaults, ...opts};
-  const {
-    uri, exchange,
-    registrations,
-    _serialization, _setupRequest,
-    _setupRegister, _connect,
-    _restartConnection, _log
-  } = _opts;
+const transformHandler = toPromise(over(lensHandler, (handler) => pipeP(parsePayload, handler, serializeP)));
 
-  const common_options = {durable: true, noAck: true};
-  const conn = await _connect(uri, common_options);
+export default async function(opts: (IrisAMQPLibOpts & {
+  _IrisAMQP?: typeof IrisAMQP
+})) {
+  const __IrisAMQP = opts._IrisAMQP || IrisAMQP;
 
-  const channel = await conn.createChannel();
+  const backend = await __IrisAMQP(opts);
 
-  const options = {ch: channel, ..._opts};
-  const operations = await Promise.all([
-    _setupRequest<S>(options as SetupRequestOpts<S>),
-    _setupRegister<S>(options as SetupRegisterOpts<S>)
-  ]);
 
-  let errored = false;
+  type RequestInput<T> = {pattern: string, payload?: T};
+  type RegisterInput<P, R> = {
+    pattern: string,
+    handler: (opts: {payload: P}) => Promise<R>
+  };
 
-  function onError(error: Error) {
-    if (!errored) {
-      errored = true;
-      _log.warn(`Connection errored...`);
+  const request: <T, R>(o: RequestInput<T>) => Promise<R | void> = pipeP(
+    serializePayload,
+    backend.request,
+    parse
+  );
 
-      _restartConnection({opts: _opts}).then(({register, request}) => {
-        operations[0] = request;
-        operations[1] = register;
-        errored = false;
-        _log.info('Connection recovered');
-      })
-      .catch((err) => {
-        _log.error(err);
-        /* This promise should never reject */
-      });
-    }
-  }
-
-  conn.on('error', onError);
-  conn.on('close', onError);
-
-  // If the connection failed there may be subscriptions from previous connection, so add them again.
-  await Promise.all(Object.keys(registrations).map(k => {
-    const registration = registrations[k];
-    return operations[1](registration);
-  }));
+  const register: <T, R> (o: RegisterInput<T, R>) => Promise<void> = pipeP(
+    transformHandler,
+    backend.register
+  );
 
   return {
-    async register<P extends S, R extends S | void>(ropts: RegisterOpts<P, R>): Promise<void> {
-      const id = `${ropts.pattern}-${ropts.namespace || ''}`;
-      if (!registrations[id]) {
-        registrations[id] = ropts;
-      }
-      if (errored) {
-        return Promise.resolve();
-      } else {
-        return operations[1](ropts);
-      }
-    },
-    async request<P extends S, R extends S | undefined>(ropts: RequestOpts<P>): Promise<R> {
-      if (errored) {
-        return Promise.reject(new Error('Broken pipe'));
-      } else {
-        return operations[0](ropts) as Promise<R>;
-      }
-    }
+    request,
+    register
   };
 }

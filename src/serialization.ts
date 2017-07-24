@@ -3,18 +3,18 @@ export interface SerializationOpts<T> {
   parse: (b: Buffer) => T;
 }
 
-// TODO This should be SerializationOptions of type <JSON> check how to do this.
-const serialization: SerializationOpts<any> = {
-  serialize(o: any) {
+export function serialize(o?: any) {
+  if (o === undefined) {
+    return Buffer.alloc(0);
+  } else {
     return Buffer.from(JSON.stringify(o));
-  },
-  parse(b: Buffer) {
-    if (b.length === 0) {
-      return undefined;
-    } else {
-      return JSON.parse(b.toString());
-    }
   }
-};
+}
 
-export default serialization;
+export function parse(b?: Buffer) {
+  if (!b || b.length === 0) {
+    return undefined;
+  } else {
+    return JSON.parse(b.toString());
+  }
+}

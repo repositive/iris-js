@@ -1,9 +1,11 @@
 import * as yargs from 'yargs';
-import irisSetup from '.';
+import {IrisAMQP} from '.';
 
 async function handler() {
   const yarg = yargs
     .strict()
+    .version()
+    .alias('version', 'v')
     .usage('Usage: $0  <pattern> [...opts]')
     .nargs('pattern', 1)
     .option('payload', {
@@ -32,14 +34,10 @@ async function handler() {
   if (!pattern) {
     yarg.showHelp();
   } else {
-    const _serialization = {
-      parse: (b: Buffer) => b.toString(),
-      serialize: (str: string) => Buffer.from(str)
-    };
-    const iris = await irisSetup({uri, exchange, _serialization});
-    const res =  await iris.request( {pattern, payload});
+    const iris = await IrisAMQP({uri, exchange});
+    const res =  await iris.request( {pattern, payload: payload ? Buffer.from(payload) : Buffer.alloc(0)});
 
-    console.log(res);
+    console.log(res && res.toString());
     process.exit(0);
   }
 }
