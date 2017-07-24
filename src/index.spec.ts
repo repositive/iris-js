@@ -1,143 +1,61 @@
 import * as test from 'tape';
 import {Test} from 'tape';
 import { stub, spy } from 'sinon';
-import iris from './index';
-import { restartConnection } from './index';
+import { toPromise } from '.';
+import irisSetup from '.';
 
-const _restartConnection = spy();
-
-function mockConnect() {
-  return {
-    createChannel: spy(),
-    on: spy()
-  };
-}
-
-function wait(time: number): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
-    setTimeout(() => resolve(), time);
-  });
-}
-
-function mockOpts() {
-  const connectResponse = mockConnect();
-  const register = spy();
-  const request = spy();
-  const registrations = {'test': {pattern: 'test', handler: spy()}};
-  return {
-    steps: {
-      request,
-      register,
-      connectResponse
-    },
-    mocks: {
-      uri: '',
-      exchange: '',
-      registrations,
-      _setupRequest: stub().returns(Promise.resolve(request)),
-      _setupRegister: stub().returns(Promise.resolve(register)),
-      _restartConnection: stub().returns(Promise.resolve({request, register})),
-      _connect: stub().returns(Promise.resolve(connectResponse)),
-      _log: {log: spy(), info: spy(), warn: spy(), error: spy()} as any
-    }
-  };
-}
-
-test('Test restartConnection', (t: Test) => {
-  const _setup = stub().returns(Promise.resolve());
-
-  const opts = mockOpts();
-  const _setTimeout = spy();
-
-  const url = '';
-  const exchange = '';
-  const result = restartConnection({opts: opts.mocks, _setup, _setTimeout});
-
-  t.ok(result instanceof Promise, 'RestartConnection returns a promise');
-
-  t.ok(_setTimeout.calledOnce, 'Set a timeout');
-  t.notOk(opts.mocks._restartConnection.called, 'Do not iterate before timeout');
-  t.notOk(_setup.called, 'Do not run setup before timeout');
-
-  const timeoutCb = _setTimeout.getCall(0).args[0];
-  timeoutCb();
-
-  t.ok(_setup.calledOnce, 'Run setup un timeout');
-  t.notOk(opts.mocks._restartConnection.called, 'Do not iterate if setup succeds');
-
-  _setup.reset();
-  _setup.returns(Promise.reject({}));
-
-  timeoutCb();
-
-  setTimeout(() => {
-    t.ok(opts.mocks._restartConnection.calledOnce, 'Iterate if setup blows up on timeout');
-
-    t.end();
-  }, 0);
-
-});
-
-test('Tests setup funcion' , (t: Test) => {
-
-  const opts = mockOpts();
-
-  async function test() {
-    const result = await iris(opts.mocks);
-
-    t.ok(opts.steps.register.calledOnce, 'Add is being call for each one of the provided registrations');
-
-    const passAddition = opts.steps.register.getCall(0).args[0];
-
-    t.deepEqual(opts.mocks.registrations.test, passAddition, 'The subscription passed to register is the expected one');
-
-    opts.steps.register.reset();
-    await result.register({pattern: '', handler: spy()});
-    t.ok(opts.steps.register.calledOnce, 'Returns an initialized register function');
-    await result.request({pattern: '', payload: {}});
-    t.ok(opts.steps.request.calledOnce, 'Returns an initialized act function');
-
-    const on0 = opts.steps.connectResponse.on.getCall(0);
-    const on1 = opts.steps.connectResponse.on.getCall(1);
-
-    t.equals(on0 && on0.args[0], 'error', 'It adds a handler to connection error');
-    t.equals(on1 && on1.args[0], 'close', 'It adds a handler to connection close');
-
-    const register = spy();
-    const request = spy();
-    opts.mocks._restartConnection.returns(Promise.resolve({request, register}));
-
-    on0.args[1]();
-
-    t.ok(opts.mocks._restartConnection.calledOnce, 'Restart connection is called on connection close');
-
-    await wait(0); // Wait for the connection to stablish again;
-
-    await result.register({pattern: '', handler: spy()});
-    t.ok(register.calledOnce, 'After successsfull restart register is reasigned');
-
-    await result.request({pattern: '', payload: {}});
-    t.ok(request.calledOnce, 'After successsfull restart act is reasigned');
-
-    opts.mocks._restartConnection.returns(Promise.reject({}));
-
-    on0.args[1]();
-
-    await result.register({pattern: '', handler: spy()}).then(() => {
-      t.ok(true, 'Subscribe works on errored library');
-    });
-
-    await result.request({pattern: '', payload: {}})
-      .then(() => {
-        t.ok(false, 'Emit should fail on errored library');
-      })
-      .catch(err => {
-        t.ok(true, 'Emit rejects the promise if the pipe is broken');
-      });
-  }
-
-  test()
-    .then(() => t.end())
+test('toPromise', (t: Test) => {
+  const f = (n: number) => 1 + n;
+  const fp = toPromise(f);
+  t.equals(typeof fp, 'function', 'It returns a function');
+  const result = fp(1);
+  console.log(result);
+  t.ok(result instanceof Promise, 'When called returns a promise');
+  result
+    .then(r => {
+      t.equals(f(1), r, 'The promise resolves in the expected return from the function promisified');
+      t.end();
+    })
     .catch(console.error);
 });
 
+test('Do not break the interface', (t: Test) => {
+  const backend = {
+    request: stub().returns(Promise.resolve(Buffer.from('2'))),
+    register: stub().returns(Promise.resolve())
+  };
+  const _IrisAMQP = stub().returns(Promise.resolve(backend));
+
+  async function _test() {
+    const irisP = irisSetup({_IrisAMQP});
+
+    t.ok(irisP instanceof Promise, 'The setup returns a Promise');
+
+    const {request, register} = await irisP;
+
+    const response = await request({pattern: ''});
+
+    t.equals(response, 2, 'The response is parsed with JSON.parse');
+
+    const bReqCall = backend.request.getCall(0);
+
+    t.deepEquals(bReqCall.args[0], {pattern: '', payload: Buffer.alloc(0)}, 'Serializer preceeds the call to real backend');
+
+    const handlerStub = stub().returns(Promise.resolve(1));
+    await register({pattern: '', handler: handlerStub});
+
+    const bRegCall = backend.register.getCall(0);
+
+    const composedHandler = bRegCall.args[0].handler;
+
+    const randomR = Math.random();
+    const handR = await composedHandler({payload: Buffer.from(`${randomR}`)});
+
+    t.deepEqual(handR, Buffer.from('1'), 'The response from the handler is serialized to a Buffer');
+    const handCall = handlerStub.getCall(0);
+
+    t.equals(handCall.args[0].payload, randomR, 'Handler is called with the parsed payload');
+
+  }
+  _test().then(() => t.end()).catch(console.error);
+});

@@ -51,7 +51,7 @@ test('Everything goes well in register function', (t: Test) => {
   const ch = mockChannel();
 
   const expectedResponse = Buffer.from('{}');
-  const handler = stub().returns(Promise.resolve(JSON.parse(expectedResponse.toString())));
+  const handler = stub().returns(Promise.resolve(expectedResponse));
 
   async function test() {
     const args = { ...libOptions, ch };
@@ -86,7 +86,7 @@ test('Everything goes well in register function', (t: Test) => {
     await consumer(message);
 
     t.ok(handler.calledOnce, 'The implemented function is called on message');
-    t.deepEquals(handler.getCall(0).args[0], {payload: JSON.parse(message.content.toString())}, 'The implementation is called with the message content');
+    t.deepEquals(handler.getCall(0).args[0], {payload: message.content}, 'The implementation is called with the message content');
 
     t.ok(ch.sendToQueue.calledOnce, 'The library pipes the response to request service');
     const sendCall = ch.sendToQueue.getCall(0);
