@@ -1,6 +1,7 @@
 # @repositive/iris
 
-[![codecov](https://codecov.io/gh/repositive/iris-js/branch/master/graph/badge.svg)](https://codecov.io/gh/repositive/iris-js)
+[![codecov](https://codecov.io/gh/repositive/iris-js/branch/master/graph/badge.svg)](https://codecov.io/gh/repositive/iris-js)  
+[![npm version](https://badge.fury.io/js/%40repositive%2Firis.svg)](https://badge.fury.io/js/%40repositive%2Firis)
 
 In Greek mythology, Iris ([/ˈaɪrᵻs/][wikipedia]) is the personification of the rainbow and messenger of the gods.
 
