@@ -7,6 +7,7 @@ In Greek mythology, Iris ([/ˈaɪrᵻs/][wikipedia]) is the personification of t
 * [Purpose](#purpose)  
 * [Installation](#installation)  
 * [Usage](#usage)
+* [Extending Iris](#extending-iris)
 * [CLI Tool](#cli-tool)
 
 ## Purpose ##
@@ -135,6 +136,37 @@ irisSetup()
   });
 ```
 
+## Extending Iris
+
+Iris is extensible through [Functional Composition](https://en.wikipedia.org/wiki/Function_composition), you just need to import the backend directly instead of the default export.
+
+The following examples use [Ramda pipes](http://ramdajs.com/docs/#pipeP) but you are free to use or implement your own solution.
+
+
+
+**Serialization:**
+
+The default export of the library comes with built-in JSON serialization. Internally it uses composition to achieve it, let's look at it: (Example lighly modified to increase clarity)
+
+[`index.ts`](https://github.com/repositive/iris-js/blob/master/src/index.ts)
+```ts
+import { IrisAMQP } from '@repositive/iris';
+
+const backend = await IrisAMQP();
+
+// Iris Request with JSON serialization on payload and response
+const request: <T, R>(o: RequestInput<T>) => Promise<R | void> = pipeP(
+  serializePayload,
+  backend.request,
+  parse
+);
+
+// Iris registration with handler JSON serialization decoration
+const register: <T, R> (o: RegisterInput<T, R>) => Promise<void> = pipeP(
+  transformHandler,
+  backend.register
+);
+```
 
 ## CLI Tool
 
