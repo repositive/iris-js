@@ -46,14 +46,14 @@ $ npm install @repositive/iris
 The library exports a single default function to run the setup.
 
 ```ts
-import setupIris from `@repositive/iris`;
+import irisSetup from `@repositive/iris`;
 ```
 
 ### Setting up Iris
 Provide to iris the basic information
 
 ```ts
-setupIris(options?: LibOpts)
+irisSetup(options?: LibOpts)
 ```  
 
 Where LibOpts is:
