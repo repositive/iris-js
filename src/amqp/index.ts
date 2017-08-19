@@ -1,6 +1,8 @@
 import {connect, Channel} from 'amqplib';
 import {SetupRegisterOpts, RegisterOpts, setupRegister} from './register';
 import {SetupRequestOpts, RequestOpts, setupRequest} from './request';
+import {SetupEmitOpts, EmitOpts, setupEmit} from './emit';
+
 import {v4} from 'uuid';
 
 export interface LibOpts {
@@ -51,6 +53,7 @@ const defaults = {
   registrations: {},
   _setupRequest: setupRequest,
   _setupRegister: setupRegister,
+  _setupEmit: setupEmit,
   _connect: connect,
   _restartConnection: restartConnection,
   _log: console
@@ -62,7 +65,8 @@ export default async function setup(opts: LibOpts = defaults) {
     uri, exchange,
     registrations,
     _setupRequest,
-    _setupRegister, _connect,
+    _setupRegister,
+    _setupEmit, _connect,
     _restartConnection, _log
   } = _opts;
 
@@ -74,7 +78,8 @@ export default async function setup(opts: LibOpts = defaults) {
   const options = {ch: channel, ..._opts};
   const operations = await Promise.all([
     _setupRequest(options as SetupRequestOpts),
-    _setupRegister(options as SetupRegisterOpts)
+    _setupRegister(options as SetupRegisterOpts),
+    _setupEmit(options as SetupEmitOpts)
   ]);
 
   let errored = false;
@@ -122,7 +127,14 @@ export default async function setup(opts: LibOpts = defaults) {
       if (errored) {
         return Promise.reject(new Error('Broken pipe'));
       } else {
-        return operations[0](ropts) as Promise<Buffer>;
+        return operations[0](ropts) as Promise<Buffer | void>;
+      }
+    },
+    async emit(eopts: EmitOpts): Promise<void> {
+      if (errored) {
+        return Promise.reject(new Error('Broken pipe'));
+      } else {
+        return operations[2](eopts) as Promise<void>;
       }
     }
   };
