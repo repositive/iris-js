@@ -12,6 +12,7 @@ export interface LibOpts {
   namespace?: string;
   _setupRequest?: typeof setupRequest;
   _setupRegister?: typeof setupRegister;
+  _setupEmit?: typeof setupEmit;
   _connect?: typeof connect;
   _restartConnection?: typeof restartConnection;
   _log?: typeof console;
@@ -89,9 +90,10 @@ export default async function setup(opts: LibOpts = defaults) {
       errored = true;
       _log.warn(`Connection errored...`);
 
-      _restartConnection({opts: _opts}).then(({register, request}) => {
+      _restartConnection({opts: _opts}).then(({register, request, emit}) => {
         operations[0] = request;
         operations[1] = register;
+        operations[2] = emit;
         errored = false;
         _log.info('Connection recovered');
       })
