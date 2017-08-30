@@ -6,12 +6,12 @@ import {Channel} from 'amqplib';
 
 function mockChannel(): any {
   return {
+    publish: spy(),
     assertExchange: spy(),
     assertQueue: spy(),
     prefetch: spy(),
     bindQueue: spy(),
     consume: spy(),
-    sendToQueue: spy(),
     ack: spy()
   };
 }
@@ -88,11 +88,11 @@ test('Everything goes well in register function', (t: Test) => {
     t.ok(handler.calledOnce, 'The implemented function is called on message');
     t.deepEquals(handler.getCall(0).args[0], {payload: message.content}, 'The implementation is called with the message content');
 
-    t.ok(ch.sendToQueue.calledOnce, 'The library pipes the response to request service');
-    const sendCall = ch.sendToQueue.getCall(0);
-    t.equals(sendCall.args[0], message.properties.replyTo, 'It replies to the requested queue');
-    t.deepEquals(sendCall.args[1], expectedResponse, 'It puts to the queue the response from the implementation');
-    t.equals(sendCall.args[2].correlationId, message.properties.correlationId, 'It adds the correlation id received from the message');
+    t.ok(ch.publish.calledOnce, 'The library pipes the response to request service');
+    const sendCall = ch.publish.getCall(0);
+    t.equals(sendCall.args[1], message.properties.replyTo, 'It replies to the requested queue');
+    t.deepEquals(sendCall.args[2], expectedResponse, 'It puts to the queue the response from the implementation');
+    t.equals(sendCall.args[3].correlationId, message.properties.correlationId, 'It adds the correlation id received from the message');
 
     t.ok(ch.ack.calledOnce, 'ACK is being called');
     t.equals(ch.ack.getCall(0).args[0], message, 'ACK is being called with the original message');
@@ -122,11 +122,11 @@ test('Not everything goes well in register function', (t: Test) => {
     t.equals(ch.ack.getCall(0).args[0], message ,
       'ACK is being called with the original message.');
 
-    t.ok(ch.sendToQueue.calledOnce, 'Sends error reply');
+    t.ok(ch.publish.calledOnce, 'Sends error reply');
 
-    t.equals(ch.sendToQueue.getCall(0).args[0], message.properties.replyTo ,
+    t.equals(ch.publish.getCall(0).args[1], message.properties.replyTo ,
       '2nd message goes back to the sender');
-    t.deepEquals(ch.sendToQueue.getCall(0).args[1].toString(), errorResponse.toString(),
+    t.deepEquals(ch.publish.getCall(0).args[2].toString(), errorResponse.toString(),
       '2nd message is an error message.');
   }
   test()
@@ -149,7 +149,7 @@ test('Not everything goes well in add function Custom', (t: Test) => {
     await consumer(message);
 
     // Error with Custom message
-    t.deepEquals(ch.sendToQueue.getCall(0).args[1].toString(), customErrorResponse.toString(),
+    t.deepEquals(ch.publish.getCall(0).args[2].toString(), customErrorResponse.toString(),
       'Custom message has a custom content.');
   }
   test().then(() => t.end());

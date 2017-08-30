@@ -25,50 +25,42 @@ export async function setupRequest<S>({
   _log = console
 }: SetupRequestOpts) {
 
+  const correlations: {[k: string]: {time: any, resolve: any, reject: any}} = {};
+
+  await ch.consume('amq.rabbitmq.reply-to', (msg?: Message) => {
+    const correlation = correlations[msg && msg.properties.correlationId];
+    if (correlation) {
+      _clearTimeout(correlation.time);
+      if (msg && msg.properties.headers.code === 0) {
+        correlation.resolve(msg.content);
+      } else {
+        correlation.reject(new RPCError(msg && msg.content.toString()));
+      }
+    }
+  }, {noAck: true});
+
   return async function request({
     pattern,
     payload,
     timeout = 100
   }: RequestOpts): Promise<Buffer | void> {
-    const q = await ch.assertQueue('', {exclusive: true});
-    const correlation  = v4();
-    const content = payload ? payload : Buffer.alloc(0);
-    ch.publish(exchange, pattern, content, {
-      correlationId: correlation,
-      replyTo: q.queue
-    });
 
     return new Promise<Buffer>((resolve, reject) => {
-
+      const id  = v4();
+      const content = payload ? payload : Buffer.alloc(0);
+      ch.publish(exchange, pattern, content, {
+        correlationId: id,
+        replyTo: 'amq.rabbitmq.reply-to'
+      });
       const time = _setTimeout(
         () => {
-          ch.deleteQueue(q.queue)
-            .then(() => {
-              reject(new TimeoutError('Timeout'));
-            })
-            .catch(reject);
+          delete correlations[id];
+          reject(new TimeoutError('Timeout'));
         },
         timeout
       );
 
-      ch.consume(q.queue, (msg?: Message) => {
-        if (msg && msg.properties.correlationId === correlation) {
-          try {
-            _clearTimeout(time);
-            ch.deleteQueue(q.queue);
-            if (msg.properties.headers.code === 0) {
-              resolve(msg.content);
-            } else {
-              reject(new RPCError(msg.content.toString()));
-            }
-          } catch(err) {
-            reject(err);
-          }
-          ch.ack(msg);
-        }
-
-        //TODO: If the correlationId does not mach... We should never get here. If that's the case maybe move the msg to error queue?
-      });
+      correlations[id] = {time, reject, resolve};
     });
   };
 }
