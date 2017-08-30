@@ -24,18 +24,24 @@ async function handler() {
       type: 'string',
       alias: 'e',
       default: 'iris'
+    })
+    .option('timeout', {
+      describe: 'How much to wait for the response before giving up',
+      type: 'number',
+      alias: 't',
+      default: 100
     });
 
   const args = yarg.argv;
 
-  const {_, payload, exchange, uri} = args;
+  const {_, payload, exchange, uri, timeout} = args;
   const [pattern] = _;
 
   if (!pattern) {
     yarg.showHelp();
   } else {
     const iris = await IrisAMQP({uri, exchange});
-    const res =  await iris.request( {pattern, payload: payload ? Buffer.from(payload) : Buffer.alloc(0)});
+    const res =  await iris.request( {pattern, timeout, payload: payload ? Buffer.from(payload) : Buffer.alloc(0)});
 
     console.log(res && res.toString());
     process.exit(0);
