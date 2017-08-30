@@ -41,15 +41,11 @@ export async function setupRequest<S>({
   await ch.consume('amq.rabbitmq.reply-to', (msg?: Message) => {
     const correlation = correlations[msg && msg.properties.correlationId];
     if (correlation) {
-      try {
-        _clearTimeout(correlation.time);
-        if (msg && msg.properties.headers.code === 0) {
-          correlation.resolve(msg.content);
-        } else {
-          correlation.reject(new RPCError(msg && msg.content.toString()));
-        }
-      } catch(err) {
-        correlation.reject(err);
+      _clearTimeout(correlation.time);
+      if (msg && msg.properties.headers.code === 0) {
+        correlation.resolve(msg.content);
+      } else {
+        correlation.reject(new RPCError(msg && msg.content.toString()));
       }
     }
   }, {noAck: true});
