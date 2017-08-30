@@ -69,7 +69,8 @@ export interface LibOpts {
 
 Running the setup will return a `Promise<{register, request}>` that will succeed if the connection to the broker could be established correctly.
 
-- **register** a handle that answers to a pattern:  
+- **register** a handle that is triggered to a pattern event, the reply is not fault-tolerant; they will be discarded if hte client that publishes the original request subsequently disconnects. The assumption is that an RPC client will reconnect and submit another request in this case. In the case of clients that emit events and opt to not handle responses the response of the RPC server will be always discarded:
+
 ```ts
 register<M, R>(opts: RegisterOpts<M, R>): Promise<void>
 ```
@@ -87,7 +88,7 @@ interface HandlerOpts<M> {
 }
 ```
 
-- **request** on a pattern, expecting a single request from one of the handlers registered on a matching pattern.
+- **request** on a pattern, expecting a single response from one of the handlers registered on a matching pattern. The call ensures that the message is dispatched to the RPC server and that it handles the event, the RPC server will reply to the client but the reply messages sent using this mechanism are in general not fault-tolerant; check the register functionality notes for more details.
 
 ```ts
 request<M, R>(opts: RequestOpts<M>): Promise<R>`  
@@ -98,25 +99,46 @@ Where RequestOpts is:
 ```ts
 interface RequestOpts<M> {
   pattern: string; // Pattern used to route the message
-  payload: M; // The message payload
+  payload?: M; // The message payload
   timeout?: number; // If there is no answer after this amount of ms the operation will be rejected with a Timeout error
 }
 ```
 
 If the operation is successful it will return `Promise<R>` where R is the output of the remote handler.
 
+- **emit** to a pattern. No response will be returned but the system will ensure that the handlers that listen to the pattern receive the event, take in account that for this to work the handlers must be registered at some poing in time before the event gets emitted.
+
+```ts
+emit<M>(opts: EmitOpts<M>): Promise<void>`
+```
+
+Where EmitOpts is:
+
+```ts
+interface EmitOpts<M> {
+  pattern: string; // Pattern used to route the message
+  payload?: M; // The message payload
+}
+```
+
+If the operation is successful it will return `Promise<void>`, this ensures that the message was placed in the processing queues ant it will be processed at some point. It's now responsability of the RPC servers to handle it.
+
 ### Examples
 
 **Server**
 ```ts
 irisSetup()
-  .then(({ register }) => {
+  .then(({ register, emit }) => {
 
     return register({pattern: 'test', async handler({payload}) {
       const {times} = payload;
 
       const rand = Math.random();
-      return {result: rand * times};
+      const result = rand * times;
+
+      await emit({pattern: 'test.handled', payload: result});
+
+      return result;
     }});
   })
   .then(() => {
@@ -128,7 +150,7 @@ irisSetup()
 **Client**
 ```ts
 irisSetup()
-  .then(({ request }) => {
+  .then(({ request, emit }) => {
 
     async function work() {
       const result = await request({pattern: 'test', payload: {times: 2}});
