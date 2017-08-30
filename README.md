@@ -67,7 +67,7 @@ export interface LibOpts {
 
 ### Functionality
 
-Running the setup will return a `Promise<{register, request}>` that will succeed if the connection to the broker could be established correctly.
+Running the setup will return a `Promise<{register, request, emit}>` that will succeed if the connection to the broker could be established correctly.
 
 - **register** a handle that is triggered to a pattern event, the reply is not fault-tolerant; they will be discarded if hte client that publishes the original request subsequently disconnects. The assumption is that an RPC client will reconnect and submit another request in this case. In the case of clients that emit events and opt to not handle responses the response of the RPC server will be always discarded:
 
