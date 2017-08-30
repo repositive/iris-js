@@ -50,8 +50,10 @@ export async function setupRequest<S>({
       const content = payload ? payload : Buffer.alloc(0);
       ch.publish(exchange, pattern, content, {
         correlationId: id,
-        replyTo: 'amq.rabbitmq.reply-to'
+        replyTo: 'amq.rabbitmq.reply-to',
+        expiration: timeout
       });
+
       const time = _setTimeout(
         () => {
           delete correlations[id];

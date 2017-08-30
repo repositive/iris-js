@@ -69,7 +69,7 @@ export interface LibOpts {
 
 Running the setup will return a `Promise<{register, request, emit}>` that will succeed if the connection to the broker could be established correctly.
 
-- **register** a handle that is triggered to a pattern event, the reply is not fault-tolerant; they will be discarded if hte client that publishes the original request subsequently disconnects. The assumption is that an RPC client will reconnect and submit another request in this case. In the case of clients that emit events and opt to not handle responses the response of the RPC server will be always discarded:
+- **register** a handle that is triggered to a pattern event, the reply is not fault-tolerant; it will be discarded if the client that publishes the original request subsequently disconnects. The assumption is that an RPC client will reconnect and submit another request in this case. In the case of clients that emit events and opt to not handle responses the response of the RPC server will be always discarded:
 
 ```ts
 register<M, R>(opts: RegisterOpts<M, R>): Promise<void>
@@ -88,7 +88,9 @@ interface HandlerOpts<M> {
 }
 ```
 
-- **request** on a pattern, expecting a single response from one of the handlers registered on a matching pattern. The call ensures that the message is dispatched to the RPC server and that it handles the event, the RPC server will reply to the client but the reply messages sent using this mechanism are in general not fault-tolerant; check the register functionality notes for more details.
+- **request** on a pattern, expecting a single response from one of the handlers registered on a matching pattern. The call ensures that the message is dispatched to the RPC server and that it handles the event, if the server does not pick up the message in the timeout interval the message will be discarded, if you want to dispatch an event with no ttl use `emit` instead.
+ 
+  If the message is handled on time the RPC server will reply to the client but the reply messages sent using this mechanism are in general not fault-tolerant; check the register functionality notes for more details.
 
 ```ts
 request<M, R>(opts: RequestOpts<M>): Promise<R>`  
