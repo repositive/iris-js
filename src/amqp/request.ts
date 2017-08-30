@@ -1,23 +1,12 @@
 import { all } from 'bluebird';
 import {Channel, Message} from 'amqplib';
 import {v4} from 'uuid';
+import { TimeoutError, RPCError } from '../errors';
 
 export interface RequestOpts {
   pattern: string;
   payload?: Buffer;
   timeout?: number;
-}
-
-export class TimeoutError extends Error {
-  constructor(msg?: string) {
-    super(msg || 'Timeout');
-  }
-}
-
-export class RPCError extends Error {
-  constructor(msg?: string) {
-    super(msg || 'Remote rejection');
-  }
 }
 
 export interface SetupRequestOpts {

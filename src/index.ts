@@ -27,7 +27,8 @@ export default async function(opts: (IrisAMQPLibOpts & {
   const backend = await __IrisAMQP(opts);
 
 
-  type RequestInput<T> = {pattern: string, payload?: T};
+  type RequestInput<T> = {pattern: string, payload?: T, timeout?: number};
+  type EmitInput<T> = {pattern: string, payload?: T};
   type RegisterInput<P, R> = {
     pattern: string,
     handler: (opts: {payload: P}) => Promise<R>
@@ -44,8 +45,14 @@ export default async function(opts: (IrisAMQPLibOpts & {
     backend.register
   );
 
+  const emit: <T>(o: EmitInput<T>) => Promise<void> = pipeP(
+    serializePayload,
+    backend.emit
+  );
+
   return {
     request,
-    register
+    register,
+    emit
   };
 }

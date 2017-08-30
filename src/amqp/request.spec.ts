@@ -2,7 +2,8 @@ import * as test from 'tape';
 import {Test} from 'tape';
 import { stub, spy } from 'sinon';
 import {Channel} from 'amqplib';
-import { setupRequest, RPCError } from './request';
+import { setupRequest } from './request';
+import { RPCError } from '../errors';
 
 function mockChannel(): any {
   return {
