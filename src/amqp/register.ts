@@ -39,7 +39,8 @@ export async function setupRegister({
         queueName,
         (msg: Message) => {
           function onError(err?: Error) {
-            return ch.sendToQueue(
+            return ch.publish(
+              '',
               msg.properties.replyTo,
               Buffer.from(JSON.stringify({error: (err && err.message) || 'Unexpected error'})),
               {correlationId: msg.properties.correlationId, headers: {code: 1}}
@@ -49,7 +50,8 @@ export async function setupRegister({
             return handler({payload: msg.content})
               .then((response?: Buffer) => {
                 if (msg.properties && msg.properties.replyTo && msg.properties.correlationId) {
-                  return ch.sendToQueue(
+                  return ch.publish(
+                    '',
                     msg.properties.replyTo,
                     response || Buffer.alloc(0),
                     {correlationId: msg.properties.correlationId, headers: {code: 0}}
