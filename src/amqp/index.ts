@@ -2,6 +2,7 @@ import {connect, Channel} from 'amqplib';
 import {SetupRegisterOpts, RegisterOpts, setupRegister} from './register';
 import {SetupRequestOpts, RequestOpts, setupRequest} from './request';
 import {SetupEmitOpts, EmitOpts, setupEmit} from './emit';
+import {RPCError} from '../errors';
 
 import {v4} from 'uuid';
 
@@ -77,11 +78,16 @@ export default async function setup(opts: LibOpts = defaults) {
   const channel = await conn.createChannel();
 
   const options = {ch: channel, ..._opts};
+
+  const setupReqP = _setupRequest(options as SetupRequestOpts);
   const operations = await Promise.all([
-    _setupRequest(options as SetupRequestOpts),
+    setupReqP.then(req => req.request),
     _setupRegister(options as SetupRegisterOpts),
-    _setupEmit(options as SetupEmitOpts)
+    _setupEmit(options as SetupEmitOpts),
+    setupReqP.then(req => req.collect)
   ]);
+
+  console.log(operations);
 
   let errored = false;
 
@@ -90,10 +96,11 @@ export default async function setup(opts: LibOpts = defaults) {
       errored = true;
       _log.warn(`Connection errored...`);
 
-      _restartConnection({opts: _opts}).then(({register, request, emit}) => {
+      _restartConnection({opts: _opts}).then(({register, request, emit, collect}) => {
         operations[0] = request;
         operations[1] = register;
         operations[2] = emit;
+        operations[3] = collect;
         errored = false;
         _log.info('Connection recovered');
       })
@@ -137,6 +144,13 @@ export default async function setup(opts: LibOpts = defaults) {
         return Promise.reject(new Error('Broken pipe'));
       } else {
         return operations[2](eopts) as Promise<void>;
+      }
+    },
+    async collect(eopts: RequestOpts): Promise<(Buffer | RPCError)[]> {
+      if (errored) {
+        return Promise.reject(new Error('Broken pipe'));
+      } else {
+        return operations[3](eopts) as Promise<(Buffer | RPCError)[]>;
       }
     }
   };

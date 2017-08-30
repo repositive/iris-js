@@ -36,12 +36,12 @@ test('Test request', (t: Test) => {
     const pSetupRequest = setupRequest({ch, exchange});
     t.ok(pSetupRequest instanceof Promise, 'Setup returns a promise');
 
-    const request = await pSetupRequest;
+    const requests = await pSetupRequest;
 
     const pattern = '';
     const payload = Buffer.from('');
 
-    const pResult1 = request({pattern, payload});
+    const pResult1 = requests.request({pattern, payload});
 
     t.ok(pResult1 instanceof Promise, 'Act returns a promise');
 
@@ -54,7 +54,7 @@ test('Test request', (t: Test) => {
       });
 
     ch.publish.reset();
-    const pResult2 = request({pattern, payload});
+    const pResult2 = requests.request({pattern, payload});
 
     await wait(0);
     const pCall = ch.publish.getCall(0);
@@ -77,7 +77,7 @@ test('Test request', (t: Test) => {
 
     ch.publish.reset();
 
-    const pResult3 = request({pattern, payload});
+    const pResult3 = requests.request({pattern, payload});
 
     await wait(0);
 

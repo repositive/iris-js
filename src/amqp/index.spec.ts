@@ -24,6 +24,7 @@ function mockOpts() {
   const register = spy();
   const request = spy();
   const emit = spy();
+  const collect = spy();
   const registrations = {'test': {pattern: 'test', handler: spy()}};
   return {
     steps: {
@@ -36,7 +37,7 @@ function mockOpts() {
       uri: '',
       exchange: '',
       registrations,
-      _setupRequest: stub().returns(Promise.resolve(request)),
+      _setupRequest: stub().returns(Promise.resolve({request, collect})),
       _setupRegister: stub().returns(Promise.resolve(register)),
       _setupEmit: stub().returns(Promise.resolve(emit)),
       _restartConnection: stub().returns(Promise.resolve({request, register, emit})),

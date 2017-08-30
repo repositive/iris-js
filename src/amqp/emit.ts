@@ -11,16 +11,12 @@ export interface EmitOpts {
 export interface SetupEmitOpts {
   ch: Channel;
   exchange: string;
-  _setTimeout?: typeof setTimeout;
-  _clearTimeout?: typeof clearTimeout;
   _log?: typeof console;
 }
 
 export async function setupEmit({
   ch,
   exchange,
-  _setTimeout = setTimeout,
-  _clearTimeout = clearTimeout,
   _log = console
 }: SetupEmitOpts) {
 
