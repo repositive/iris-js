@@ -87,8 +87,6 @@ export default async function setup(opts: LibOpts = defaults) {
     setupReqP.then(req => req.collect)
   ]);
 
-  console.log(operations);
-
   let errored = false;
 
   function onError(error: Error) {

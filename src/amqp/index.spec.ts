@@ -31,6 +31,7 @@ function mockOpts() {
       emit,
       request,
       register,
+      collect,
       connectResponse
     },
     mocks: {
@@ -102,6 +103,8 @@ test('Tests setup funcion' , (t: Test) => {
     t.ok(opts.steps.request.calledOnce, 'Returns an initialized act function');
     await result.emit({pattern: ''});
     t.ok(opts.steps.emit.calledOnce, 'Returns an initialized emit function');
+    await result.collect({pattern: ''});
+    t.ok(opts.steps.collect.calledOnce, 'Returns an initialized collect function');
 
     const on0 = opts.steps.connectResponse.on.getCall(0);
     const on1 = opts.steps.connectResponse.on.getCall(1);
@@ -109,10 +112,13 @@ test('Tests setup funcion' , (t: Test) => {
     t.equals(on0 && on0.args[0], 'error', 'It adds a handler to connection error');
     t.equals(on1 && on1.args[0], 'close', 'It adds a handler to connection close');
 
+    // Mocks of backend for restart.
     const register = spy();
     const request = spy();
     const emit = spy();
-    opts.mocks._restartConnection.returns(Promise.resolve({request, register, emit}));
+    const collect = spy();
+
+    opts.mocks._restartConnection.returns(Promise.resolve({request, register, emit, collect}));
 
     on0.args[1]();
 
@@ -128,6 +134,9 @@ test('Tests setup funcion' , (t: Test) => {
 
     await result.emit({pattern: '', payload: Buffer.from('')});
     t.ok(emit.calledOnce, 'After successfull restart emit is reasigned');
+
+    await result.collect({pattern: '', payload: Buffer.from('')});
+    t.ok(collect.calledOnce, 'After successfull restart collect is reasigned');
 
     opts.mocks._restartConnection.returns(Promise.reject({}));
 
@@ -152,6 +161,15 @@ test('Tests setup funcion' , (t: Test) => {
       .catch(err => {
         t.ok(true, 'Emit rejects the promise if the pipe is broken');
       });
+
+    await result.collect({pattern: ''})
+      .then(() => {
+        t.ok(false, 'Collect should fail on errored library');
+      })
+      .catch((err) => {
+        t.ok(true, 'Collect rejects the promise if hte pipe is broken');
+      });
+
   }
 
   test()
