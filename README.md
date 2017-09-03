@@ -108,6 +108,25 @@ interface RequestOpts<M> {
 
 If the operation is successful it will return `Promise<R>` where R is the output of the remote handler.
 
+
+- **collect** on a pattern, expecting a multiple responses from one of the handlers registered on a matching pattern. The call ensures that the message is dispatched to the RPC server and that it handles the event, if the server does not pick up the message in the timeout interval the message will be discarded, if you want to dispatch an event with no ttl use `emit` instead.
+
+  If the message is handled on time the RPC server will reply to the client but the reply messages sent using this mechanism are in general not fault-tolerant; check the register functionality notes for more details.
+
+```ts
+collect<M, R>(opts: CollectOpts<M>): Promise<(R | RPCError)[]>`  
+```
+
+Where CollectOpts is:
+
+```ts
+interface CollectOpts<M> {
+  pattern: string; // Pattern used to route the message
+  payload?: M; // The message payload
+  timeout?: number; // How much you to wait for responses.
+}
+```
+
 - **emit** to a pattern. No response will be returned but the system will ensure that the handlers that listen to the pattern receive the event, take in account that for this to work the handlers must be registered at some poing in time before the event gets emitted.
 
 ```ts
