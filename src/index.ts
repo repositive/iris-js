@@ -21,21 +21,27 @@ const parseArray = toPromise(map(ifElse(is(Buffer), parse, identity))) as any;
 
 const transformHandler = toPromise(over(lensHandler, (handler) => pipeP(parsePayload, handler, serializeP)));
 
+export type RequestInput<T> = {pattern: string, payload?: T, timeout?: number};
+export type CollectInput<T> = RequestInput<T>;
+export type EmitInput<T> = {pattern: string, payload?: T};
+export type RegisterInput<P, R> = {
+  pattern: string,
+  handler: (opts: {payload: P}) => Promise<R>
+};
+
+export interface Iris {
+  request: <I, O>(rq: RequestInput<I>) => Promise<O | void>;
+  register: <I, O>(re: RegisterInput<I, O>) => Promise<void>;
+  emit: <I>(rq: EmitInput<I>) => Promise<void>;
+  collect: <I, O>(rq: CollectInput<I>) => Promise<(O | RPCError)[]>;
+}
+
 export default async function(opts: (IrisAMQPLibOpts & {
   _IrisAMQP?: typeof IrisAMQP
-})) {
+})): Promise<Iris> {
   const __IrisAMQP = opts._IrisAMQP || IrisAMQP;
 
   const backend = await __IrisAMQP(opts);
-
-
-  type RequestInput<T> = {pattern: string, payload?: T, timeout?: number};
-  type CollectInput<T> = RequestInput<T>;
-  type EmitInput<T> = {pattern: string, payload?: T};
-  type RegisterInput<P, R> = {
-    pattern: string,
-    handler: (opts: {payload: P}) => Promise<R>
-  };
 
   const request: <T, R>(o: RequestInput<T>) => Promise<R | void> = pipeP(
     serializePayload,
