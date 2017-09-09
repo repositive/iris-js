@@ -2,12 +2,7 @@ import { all } from 'bluebird';
 import {Channel, Message} from 'amqplib';
 import {v4} from 'uuid';
 import { TimeoutError, RPCError } from '../errors';
-
-export interface RequestOpts {
-  pattern: string;
-  payload?: Buffer;
-  timeout?: number;
-}
+import { RequestInput } from '..';
 
 export interface SetupRequestOpts {
   ch: Channel;
@@ -64,7 +59,7 @@ export async function setupRequest<S>({
       pattern,
       payload,
       timeout = 100
-    }: RequestOpts): Promise<Buffer | void> {
+    }: RequestInput<Buffer>): Promise<Buffer | void> {
 
       return new Promise<Buffer>((resolve, reject) => {
         const id  = v4();
@@ -91,7 +86,7 @@ export async function setupRequest<S>({
       pattern,
       payload,
       timeout = 100
-    }: RequestOpts): Promise<void | (Buffer | RPCError)[]> {
+    }: RequestInput<Buffer>): Promise<void | (Buffer | RPCError)[]> {
 
       return new Promise<(Buffer | RPCError)[]>((resolve, reject) => {
         const id  = v4();

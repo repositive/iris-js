@@ -1,19 +1,10 @@
 import {Channel, Message} from 'amqplib';
 import {all} from 'bluebird';
+import {RegisterInput} from '..';
 
 export interface SetupRegisterOpts {
   ch: Channel;
   exchange: string;
-  namespace?: string;
-}
-
-export interface HandlerOpts {
-  payload: Buffer;
-}
-
-export interface RegisterOpts {
-  pattern: string;
-  handler: (params: (HandlerOpts)) => Promise<Buffer | void>;
   namespace?: string;
 }
 
@@ -28,7 +19,7 @@ export async function setupRegister({
   return async function subscribe({
     pattern,
     handler
-  }: RegisterOpts): Promise<void> {
+  }: RegisterInput<Buffer, Buffer>): Promise<void> {
     const __namespace = arguments[0].namespace || namespace;
     const queueName = `${__namespace}-${pattern}`;
     return await all([

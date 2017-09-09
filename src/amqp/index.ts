@@ -3,6 +3,7 @@ import {SetupRegisterOpts, RegisterOpts, setupRegister} from './register';
 import {SetupRequestOpts, RequestOpts, setupRequest} from './request';
 import {SetupEmitOpts, EmitOpts, setupEmit} from './emit';
 import {RPCError} from '../errors';
+import {IrisBackend} from '..';
 
 import {v4} from 'uuid';
 
@@ -61,7 +62,7 @@ const defaults = {
   _log: console
 };
 
-export default async function setup(opts: LibOpts = defaults) {
+export default async function setup(opts: LibOpts = defaults): Promise<IrisBackend> {
   const _opts = {...defaults, ...opts};
   const {
     uri, exchange,

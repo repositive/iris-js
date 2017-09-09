@@ -2,11 +2,7 @@ import { all } from 'bluebird';
 import {Channel, Message} from 'amqplib';
 import {v4} from 'uuid';
 import { TimeoutError, RPCError } from '../errors';
-
-export interface EmitOpts {
-  pattern: string;
-  payload?: Buffer;
-}
+import { EmitInput } from '..';
 
 export interface SetupEmitOpts {
   ch: Channel;
@@ -23,7 +19,7 @@ export async function setupEmit({
   return async function emit({
     pattern,
     payload
-  }: EmitOpts): Promise<void> {
+  }: EmitInput<Buffer>): Promise<void> {
     const correlation  = v4();
     const content = payload ? payload : Buffer.alloc(0);
     ch.publish(exchange, pattern, content, {
