@@ -1,16 +1,16 @@
 import {connect, Channel} from 'amqplib';
-import {SetupRegisterOpts, RegisterOpts, setupRegister} from './register';
-import {SetupRequestOpts, RequestOpts, setupRequest} from './request';
-import {SetupEmitOpts, EmitOpts, setupEmit} from './emit';
+import {SetupRegisterOpts, setupRegister} from './register';
+import {SetupRequestOpts, setupRequest} from './request';
+import {SetupEmitOpts, setupEmit} from './emit';
 import {RPCError} from '../errors';
-import {IrisBackend} from '..';
+import {IrisBackend, RegisterInput, RequestInput, CollectInput, EmitInput} from '..';
 
 import {v4} from 'uuid';
 
 export interface LibOpts {
   uri?: string;
   exchange?: string;
-  registrations?: {[k: string]: RegisterOpts};
+  registrations?: {[k: string]: RegisterInput<Buffer, Buffer>};
   namespace?: string;
   _setupRequest?: typeof setupRequest;
   _setupRegister?: typeof setupRegister;
@@ -120,7 +120,7 @@ export default async function setup(opts: LibOpts = defaults): Promise<IrisBacke
   }));
 
   return {
-    async register(ropts: RegisterOpts): Promise<void> {
+    async register(ropts: RegisterInput<Buffer, Buffer>): Promise<void> {
       const id = `${ropts.pattern}-${ropts.namespace || ''}`;
       if (!registrations[id]) {
         registrations[id] = ropts;
@@ -131,21 +131,21 @@ export default async function setup(opts: LibOpts = defaults): Promise<IrisBacke
         return operations[1](ropts);
       }
     },
-    async request(ropts: RequestOpts): Promise<Buffer | void> {
+    async request(ropts: RequestInput<Buffer>): Promise<Buffer | void> {
       if (errored) {
         return Promise.reject(new Error('Broken pipe'));
       } else {
         return operations[0](ropts) as Promise<Buffer | void>;
       }
     },
-    async emit(eopts: EmitOpts): Promise<void> {
+    async emit(eopts: EmitInput<Buffer>): Promise<void> {
       if (errored) {
         return Promise.reject(new Error('Broken pipe'));
       } else {
         return operations[2](eopts) as Promise<void>;
       }
     },
-    async collect(eopts: RequestOpts): Promise<(Buffer | RPCError)[]> {
+    async collect(eopts: RequestInput<Buffer>): Promise<(Buffer | RPCError)[]> {
       if (errored) {
         return Promise.reject(new Error('Broken pipe'));
       } else {

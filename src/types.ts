@@ -3,10 +3,12 @@ import {RPCError} from './errors';
 export type RequestInput<T> = {pattern: string, payload?: T, timeout?: number};
 export type CollectInput<T> = RequestInput<T>;
 export type EmitInput<T> = {pattern: string, payload?: T};
-export type RegisterHandler<P, R> = (opts: {payload: P}) => Promise<R>;
+export type RegisterHandler<P, R> = (opts: {payload: (P | undefined)}) => Promise<R>;
 export type RegisterInput<P, R> = {
-  pattern: string,
-  handler: RegisterHandler<P, R>
+  pattern: string;
+  handler: RegisterHandler<P, R>;
+  namespace?: string;
+  maxRetrys?: number;
 };
 
 export interface IrisBackend {

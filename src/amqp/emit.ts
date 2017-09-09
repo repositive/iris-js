@@ -20,10 +20,7 @@ export async function setupEmit({
     pattern,
     payload
   }: EmitInput<Buffer>): Promise<void> {
-    const correlation  = v4();
     const content = payload ? payload : Buffer.alloc(0);
-    ch.publish(exchange, pattern, content, {
-      correlationId: correlation
-    });
+    ch.publish(exchange, pattern, content);
   };
 }

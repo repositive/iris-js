@@ -18,7 +18,8 @@ export async function setupRegister({
   const _namespace = arguments[0].namespace;
   return async function subscribe({
     pattern,
-    handler
+    handler,
+    maxRetrys = 0
   }: RegisterInput<Buffer, Buffer>): Promise<void> {
     const __namespace = arguments[0].namespace || namespace;
     const queueName = `${__namespace}-${pattern}`;
@@ -30,12 +31,21 @@ export async function setupRegister({
         queueName,
         (msg: Message) => {
           function onError(err?: Error) {
-            return ch.publish(
-              '',
-              msg.properties.replyTo,
-              Buffer.from(JSON.stringify({error: (err && err.message) || 'Unexpected error'})),
-              {correlationId: msg.properties.correlationId, headers: {code: 1}}
-            );
+            const retry = msg.properties.headers.retry || 0;
+            if (retry < maxRetrys) {
+              return ch.sendToQueue(
+                queueName,
+                msg.content,
+                {...msg.properties, headers: {...msg.properties.headers, retry: retry + 1}}
+              );
+            } else if (msg.properties.correlationId) {
+              return ch.publish(
+                '',
+                msg.properties.replyTo,
+                Buffer.from(JSON.stringify({error: (err && err.message) || 'Unexpected error', retry})),
+                {correlationId: msg.properties.correlationId, headers: {code: 1}}
+              );
+            }
           }
           try {
             return handler({payload: msg.content})
