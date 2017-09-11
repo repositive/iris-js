@@ -7,6 +7,7 @@ import {Channel} from 'amqplib';
 function mockChannel(): any {
   return {
     publish: spy(),
+    sendToQueue: spy(),
     assertExchange: spy(),
     assertQueue: spy(),
     prefetch: spy(),
@@ -96,9 +97,40 @@ test('Everything goes well in register function', (t: Test) => {
 
     t.ok(ch.ack.calledOnce, 'ACK is being called');
     t.equals(ch.ack.getCall(0).args[0], message, 'ACK is being called with the original message');
+
+    ch.consume.reset();
+
+    await register({pattern, handler, retry: 1});
+
   }
 
   test().then(() => t.end());
+});
+
+test('Register retries', (t: Test) => {
+  const ch = mockChannel();
+  const handler = stub().returns(Promise.reject(new Error('I want to blow up')));
+
+  async function _test() {
+    const args = { ...libOptions, ch };
+    const register = await setupRegister(args);
+
+    const pattern = 'retry.test.works';
+    await register({pattern, handler, retry: 1});
+    const consumeCall = ch.consume.getCall(0);
+
+    const message = fakeMessage();
+
+    const consumer = consumeCall.args[1];
+
+    await consumer(message);
+
+    t.ok(ch.sendToQueue.calledOnce, 'On error with retries call sendToQueue');
+
+    t.deepEqual(ch.sendToQueue.getCall(0).args, [`default-${pattern}`, message.content, {...message.properties, headers: {...message.properties.headers, retry: 1}}], 'SendToQueue is called with the correct retry header');
+  }
+
+  _test().then(t.end);
 });
 
 test('Not everything goes well in register function', (t: Test) => {
