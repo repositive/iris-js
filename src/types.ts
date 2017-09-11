@@ -8,7 +8,7 @@ export type RegisterInput<P, R> = {
   pattern: string;
   handler: RegisterHandler<P, R>;
   namespace?: string;
-  maxRetrys?: number;
+  retry?: number;
 };
 
 export interface IrisBackend {
