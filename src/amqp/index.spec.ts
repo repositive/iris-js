@@ -143,7 +143,9 @@ test('Tests setup funcion' , (t: Test) => {
     on0.args[1]();
 
     await result.register({pattern: '', handler: spy()}).then(() => {
-      t.ok(true, 'Subscribe works on errored library');
+      t.notOk(true, 'Subscribe should reject on errored library');
+    }).catch(err => {
+      t.ok(true, 'Register rejects the promise on pipe broken');
     });
 
     await result.request({pattern: '', payload: Buffer.alloc(0)})

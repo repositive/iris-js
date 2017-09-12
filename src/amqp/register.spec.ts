@@ -87,7 +87,7 @@ test('Everything goes well in register function', (t: Test) => {
     await consumer(message);
 
     t.ok(handler.calledOnce, 'The implemented function is called on message');
-    t.deepEquals(handler.getCall(0).args[0], {payload: message.content}, 'The implementation is called with the message content');
+    t.deepEquals(handler.getCall(0).args[0].payload, message.content, 'The implementation is called with the message content');
 
     t.ok(ch.publish.calledOnce, 'The library pipes the response to request service');
     const sendCall = ch.publish.getCall(0);
