@@ -4,15 +4,18 @@ import { stub, spy } from 'sinon';
 import { setupRegister } from './register';
 import {Channel} from 'amqplib';
 
+const consumeResponse = Promise.resolve({consumerTag: 'testis'});
+
 function mockChannel(): any {
   return {
     publish: spy(),
+    cancel: spy(),
     sendToQueue: spy(),
     assertExchange: spy(),
     assertQueue: spy(),
     prefetch: spy(),
     bindQueue: spy(),
-    consume: spy(),
+    consume: stub().returns(consumeResponse),
     ack: spy()
   };
 }
@@ -130,7 +133,7 @@ test('Register retries', (t: Test) => {
     t.deepEqual(ch.sendToQueue.getCall(0).args, [`default-${pattern}`, message.content, {...message.properties, headers: {...message.properties.headers, retry: 1}}], 'SendToQueue is called with the correct retry header');
   }
 
-  _test().then(t.end);
+  _test().then(t.end).catch(console.error);
 });
 
 test('Not everything goes well in register function', (t: Test) => {
@@ -162,6 +165,46 @@ test('Not everything goes well in register function', (t: Test) => {
       '2nd message is an error message.');
   }
   test()
+    .then(() => t.end())
+    .catch(console.error);
+});
+
+test('Pause register', (t: Test) => {
+  const ch = mockChannel();
+  const expectedResponse = Buffer.alloc(0);
+  async function _test() {
+
+    const pattern = 'pause.register.test';
+    const register = await setupRegister({...libOptions, ch});
+
+    const handler = stub().returns(Promise.resolve());
+
+    const regContext = await register({pattern, handler});
+
+    t.equals(typeof regContext.pause, 'function', 'Register exposes the context object with pause');
+
+    const consumer = ch.consume.getCall(0).args[1];
+
+    const message = fakeMessage();
+    await consumer(message);
+
+    const handleArgs = handler.getCall(0).args[0];
+
+    t.deepEqual(handleArgs.context.pause, regContext.pause, 'Both handler and regContext share the same function');
+
+    const paused = await regContext.pause();
+
+    t.ok(ch.cancel.calledOnce, 'Calls cancel on the channel');
+    t.equals(ch.cancel.getCall(0).args[0], 'testis', 'Calls cancel with the correct consumer id');
+
+    ch.consume.reset();
+    ch.consume.returns(consumeResponse);
+    await paused.resume();
+
+    t.ok(ch.consume.calledOnce, 'On resume call consume on channel');
+  }
+
+  _test()
     .then(() => t.end())
     .catch(console.error);
 });
