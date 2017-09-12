@@ -78,21 +78,47 @@ Running the setup will return a `Promise<{backend, register, request, emit, coll
 - **register** a handle that is triggered to a pattern event, the reply is not fault-tolerant; it will be discarded if the client that publishes the original request subsequently disconnects. The assumption is that an RPC client will reconnect and submit another request in this case. In the case of clients that emit events and opt to not handle responses the response of the RPC server will be always discarded:
 
   ```ts
-  register<M, R>(opts: RegisterOpts<M, R>): Promise<void>
+  register<M, R>(opts: RegisterOpts<M, R>): Promise<RegisterActiveContext>
   ```
   
   Where RegisterOpts is:
   ```ts
   interface RegisterOpts<M, R> {
     pattern: string; // The pattern to which this handler will answer.
-    handler: (opts: HandlerOpts<M>) => Promise<R>; // Logic to handle the mesage.
+    handler: (opts: HandlerInput<M>) => Promise<R>; // Logic to handle the mesage.
     namespace?: string; // Allows to provide several handlers for the same pattern simultaneously"
   }
   
-  interface HandlerOpts<M> {
-    msg: M; // The message sent from the client.
+  interface HandlerInput<M> {
+    payload?: M; // The message sent from the client
+    context: RegisterActiveContext;
+  }  
+
+  interface RegisterActiveContext {
+    pause: () => Promise<RegisterPausedContext>;
+  }
+
+  interface RegisterPausedContext {
+    resume: () => Promise<RegisterActiveContext>;
   }
   ```
+
+  You can pause a register `pause` function, this is useful when working with emit as non ttl applies and it's possible to accumulate items in a queue.
+
+  There are two ways to access the `pause` function:
+
+  - Using the returned context object when creating a new registration
+    ```ts
+    const registerContext = await register({pattern: 'test', handler});
+    registerContext.pause().then(() => console.log(`The registered pattern is no longer accepting messages`))
+    ```
+  - Using the new `context` attribute injected to the handler
+    ```ts
+    register({pattern, async handler({payload, context}) {
+      context.pause().then(() => console.log(`The registered pattern is no longer accepting messages`))
+    }})
+    ```
+  Calling pause returns a RegisterPausedState that contains the `resume` function used to continue with the normal operation of the register.
 
 - **request** on a pattern, expecting a single response from one of the handlers registered on a matching pattern. The call ensures that the message is dispatched to the RPC server and that it handles the event, if the server does not pick up the message in the timeout interval the message will be discarded, if you want to dispatch an event with no ttl use `emit` instead.
  
