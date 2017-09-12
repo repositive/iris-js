@@ -4,7 +4,7 @@ import {parse, serialize} from './serialization';
 import {is, identity, ifElse, map, curry, pipeP, lensProp, over} from 'ramda';
 import {RPCError} from './errors';
 export const IrisAMQP = _IrisAMQP;
-import {RegisterHandler, Iris, RegisterInput, EmitInput, CollectInput,RequestInput} from './types';
+import {RegisterActiveContext, RegisterHandler, Iris, RegisterInput, EmitInput, CollectInput,RequestInput} from './types';
 export * from './types';
 
 type F1<T, R> = (t: T) => R;
@@ -36,7 +36,7 @@ export default async function(opts: (IrisAMQPLibOpts & {
     parse
   );
 
-  const register: <T, R> (o: RegisterInput<T, R>) => Promise<void> = pipeP(
+  const register: <T, R> (o: RegisterInput<T, R>) => Promise<RegisterActiveContext> = pipeP(
     transformHandler,
     backend.register
   );

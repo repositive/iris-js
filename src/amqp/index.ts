@@ -3,7 +3,7 @@ import {SetupRegisterOpts, setupRegister} from './register';
 import {SetupRequestOpts, setupRequest} from './request';
 import {SetupEmitOpts, setupEmit} from './emit';
 import {RPCError} from '../errors';
-import {IrisBackend, RegisterInput, RequestInput, CollectInput, EmitInput} from '..';
+import {IrisBackend, RegisterActiveContext, RegisterInput, RequestInput, CollectInput, EmitInput} from '..';
 
 import {v4} from 'uuid';
 
@@ -120,13 +120,13 @@ export default async function setup(opts: LibOpts = defaults): Promise<IrisBacke
   }));
 
   return {
-    async register(ropts: RegisterInput<Buffer, Buffer>): Promise<void> {
+    async register(ropts: RegisterInput<Buffer, Buffer>): Promise<RegisterActiveContext> {
       const id = `${ropts.pattern}-${ropts.namespace || ''}`;
       if (!registrations[id]) {
         registrations[id] = ropts;
       }
       if (errored) {
-        return Promise.resolve();
+        return Promise.reject(new Error('Broken Pipe'));
       } else {
         return operations[1](ropts);
       }
