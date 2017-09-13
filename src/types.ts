@@ -3,7 +3,8 @@ import {RPCError} from './errors';
 export type RequestInput<T> = {pattern: string, payload?: T, timeout?: number};
 export type CollectInput<T> = RequestInput<T>;
 export type EmitInput<T> = {pattern: string, payload?: T};
-export type RegisterHandler<P, R> = (opts: {payload: (P | undefined), context: RegisterActiveContext}) => Promise<R>;
+export type RegisterHandlerInput<P> = {payload?: P, context: RegisterActiveContext};
+export type RegisterHandler<P, R> = (opts: RegisterHandlerInput<P>) => Promise<R>;
 export type RegisterInput<P, R> = {
   pattern: string;
   handler: RegisterHandler<P, R>;

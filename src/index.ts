@@ -6,6 +6,7 @@ import {RPCError} from './errors';
 export const IrisAMQP = _IrisAMQP;
 import {RegisterActiveContext, RegisterHandler, Iris, RegisterInput, EmitInput, CollectInput,RequestInput} from './types';
 export * from './types';
+export * from './utils';
 
 type F1<T, R> = (t: T) => R;
 export const toPromise = curry(function toPromise<T, R>(f: F1<T, R>, val: T) {
