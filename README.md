@@ -220,6 +220,25 @@ Iris is extensible through [Functional Composition](https://en.wikipedia.org/wik
 
 The following examples use [Ramda pipes](http://ramdajs.com/docs/#pipeP) but you are free to use or implement your own solution.
 
+## Handler Injection
+
+It's possible to inject properties in handlers. Iris provides a `inject` function to help with it:
+
+```ts
+import {inject, RegisterHandlerInput} from '@repositive/iris';
+import * as _fetch from 'node-fetch';
+
+interface CustomArgs {
+  _fetch: typeof fetch
+}
+
+async function handler({payload, _fetch}: RegisterHandlerInput & CustomArgs) {
+  return await _fetch(/*Implementation details*/)
+}
+
+const irisHandler = inject<CustomArgs, RegisterHandlerInput, Promise<any>>({args: {_fetch: fetch}, func: handler})
+```
+
 
 
 **Serialization:**
