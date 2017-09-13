@@ -3,7 +3,7 @@ import {Test} from 'tape';
 import { stub, spy } from 'sinon';
 import {inject} from './utils';
 
-test.only('Inject tests', (t: Test) => {
+test('Inject tests', (t: Test) => {
   type A = {one: string};
   type B = {two: string};
   function f (ab: A & B) {
