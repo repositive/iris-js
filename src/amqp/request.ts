@@ -58,7 +58,7 @@ export async function setupRequest<S>({
     async request({
       pattern,
       payload,
-      timeout = 100
+      timeout = 5000
     }: RequestInput<Buffer>): Promise<Buffer | void> {
 
       return new Promise<Buffer>((resolve, reject) => {

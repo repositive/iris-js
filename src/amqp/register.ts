@@ -118,7 +118,7 @@ export async function setupRegister({
 
     return await all([
       ch.assertQueue(queueName),
-      ch.prefetch(1),
+      ch.prefetch(10),
       ch.bindQueue(queueName, exchange, pattern),
       _resume({ch, handler, retry, queueName, _activeContext})
     ])
