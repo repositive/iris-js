@@ -9,7 +9,8 @@ import { RPCError } from '../errors';
 function mockChannel(): any {
   return {
     sendToQueue: spy(),
-    publish: spy()
+    publish: stub().returns(true),
+    once: spy()
   };
 }
 
@@ -47,6 +48,23 @@ test('Test emit', (t: Test) => {
         t.notOk(true, 'It should never blow up if the publish to rabbitmq succeeds');
       });
 
+    ch.publish.returns(false);
+
+    let resolved = false;
+    emit({pattern, payload}).then(() => {
+      resolved = true;
+    });
+
+    await wait(10);
+
+    t.notOk(resolved, 'The promise does not resolve until the drain event is emmited from the channel.');
+
+    // Emit the drain event artificially
+    ch.once.getCall(0).args[1]();
+
+    await wait(10);
+
+    t.ok(resolved, 'The promise was resolved once the drain event is emmited');
   }
 
   test()
