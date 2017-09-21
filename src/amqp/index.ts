@@ -78,6 +78,8 @@ export default async function setup(opts: LibOpts = defaults): Promise<IrisBacke
 
   const channel = await conn.createChannel();
 
+  channel.setMaxListeners(Infinity);
+
   const options = {ch: channel, ..._opts};
 
   const setupReqP = _setupRequest(options as SetupRequestOpts);
