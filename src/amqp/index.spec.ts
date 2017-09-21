@@ -8,7 +8,7 @@ const _restartConnection = spy();
 
 function mockConnect() {
   return {
-    createChannel: spy(),
+    createChannel: stub().returns(Promise.resolve({setMaxListeners: spy()})),
     on: spy()
   };
 }
