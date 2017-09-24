@@ -13,9 +13,9 @@ export type RegisterInput<P, R> = {
 };
 
 export interface IrisBackend {
-  request: (rq: RequestInput<Buffer>) => Promise<Buffer | void>;
+  request: (rq: RequestInput<Buffer>) => Promise<Buffer | undefined>;
   register: (re: RegisterInput<Buffer, Buffer>) => Promise<RegisterActiveContext>;
-  emit: (rq: EmitInput<Buffer>) => Promise<void>;
+  emit: (rq: EmitInput<Buffer>) => Promise<undefined>;
   collect: (rq: CollectInput<Buffer>) => Promise<(Buffer | RPCError)[]>;
 }
 
@@ -28,8 +28,8 @@ export interface RegisterPausedContext {
 
 export interface Iris {
   backend: IrisBackend;
-  request: <I, O>(rq: RequestInput<I>) => Promise<O | void>;
+  request: <I, O>(rq: RequestInput<I>) => Promise<O | undefined>;
   register: <I, O>(re: RegisterInput<I, O>) => Promise<RegisterActiveContext>;
-  emit: <I>(rq: EmitInput<I>) => Promise<void>;
+  emit: <I>(rq: EmitInput<I>) => Promise<undefined>;
   collect: <I, O>(rq: CollectInput<I>) => Promise<(O | RPCError)[]>;
 }

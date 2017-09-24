@@ -19,11 +19,11 @@ export async function setupEmit({
   return async function emit({
     pattern,
     payload
-  }: EmitInput<Buffer>): Promise<void> {
+  }: EmitInput<Buffer>): Promise<undefined> {
     const content = payload ? payload : Buffer.alloc(0);
     const published = ch.publish(exchange, pattern, content);
     if (!published) {
-      return new Promise<void>(resolve => {
+      return new Promise<undefined>(resolve => {
         ch.once('drain', resolve);
       });
     }

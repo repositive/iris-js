@@ -13,8 +13,8 @@ function mockConnect() {
   };
 }
 
-function wait(time: number): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
+function wait(time: number): Promise<undefined> {
+  return new Promise<undefined>((resolve, reject) => {
     setTimeout(() => resolve(), time);
   });
 }

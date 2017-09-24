@@ -31,7 +31,7 @@ export default async function(opts: (IrisAMQPLibOpts & {
 
   const backend = await __IrisAMQP(opts);
 
-  const request: <T, R>(o: RequestInput<T>) => Promise<R | void> = pipeP(
+  const request: <T, R>(o: RequestInput<T>) => Promise<R | undefined> = pipeP(
     serializePayload,
     backend.request,
     parse
@@ -42,7 +42,7 @@ export default async function(opts: (IrisAMQPLibOpts & {
     backend.register
   );
 
-  const emit: <T>(o: EmitInput<T>) => Promise<void> = pipeP(
+  const emit: <T>(o: EmitInput<T>) => Promise<undefined> = pipeP(
     serializePayload,
     backend.emit
   );

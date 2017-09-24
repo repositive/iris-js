@@ -59,7 +59,7 @@ export async function setupRequest<S>({
       pattern,
       payload,
       timeout = 5000
-    }: RequestInput<Buffer>): Promise<Buffer | void> {
+    }: RequestInput<Buffer>): Promise<Buffer | undefined> {
 
       return new Promise<Buffer>((resolve, reject) => {
         const id  = v4();
@@ -86,7 +86,7 @@ export async function setupRequest<S>({
       pattern,
       payload,
       timeout = 100
-    }: RequestInput<Buffer>): Promise<void | (Buffer | RPCError)[]> {
+    }: RequestInput<Buffer>): Promise<undefined | (Buffer | RPCError)[]> {
 
       return new Promise<(Buffer | RPCError)[]>((resolve, reject) => {
         const id  = v4();

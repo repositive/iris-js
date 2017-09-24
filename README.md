@@ -163,7 +163,7 @@ Running the setup will return a `Promise<{backend, register, request, emit, coll
 - **emit** to a pattern. No response will be returned but the system will ensure that the handlers that listen to the pattern receive the event, take in account that for this to work the handlers must be registered at some poing in time before the event gets emitted.
 
   ```ts
-  emit<M>(opts: EmitOpts<M>): Promise<void>`
+  emit<M>(opts: EmitOpts<M>): Promise<undefined>`
   ```
   
   Where EmitOpts is:
@@ -175,7 +175,7 @@ Running the setup will return a `Promise<{backend, register, request, emit, coll
   }
   ```
   
-  If the operation is successful it will return `Promise<void>`, this ensures that the message was placed in the processing queues ant it will be processed at some point. It's now responsability of the RPC servers to handle it.
+  If the operation is successful it will return `Promise<undefined>`, this ensures that the message was placed in the processing queues ant it will be processed at some point. It's now responsability of the RPC servers to handle it.
 
 ### Examples
 
@@ -252,14 +252,14 @@ import { IrisAMQP } from '@repositive/iris';
 const backend = await IrisAMQP();
 
 // Iris Request with JSON serialization on payload and response
-const request: <T, R>(o: RequestInput<T>) => Promise<R | void> = pipeP(
+const request: <T, R>(o: RequestInput<T>) => Promise<R | undefined> = pipeP(
   serializePayload,
   backend.request,
   parse
 );
 
 // Iris registration with handler JSON serialization decoration
-const register: <T, R> (o: RegisterInput<T, R>) => Promise<void> = pipeP(
+const register: <T, R> (o: RegisterInput<T, R>) => Promise<undefined> = pipeP(
   transformHandler,
   backend.register
 );

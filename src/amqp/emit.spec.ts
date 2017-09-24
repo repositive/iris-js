@@ -14,8 +14,8 @@ function mockChannel(): any {
   };
 }
 
-function wait(time: number): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
+function wait(time: number): Promise<undefined> {
+  return new Promise<undefined>((resolve, reject) => {
     setTimeout(() => resolve(), time);
   });
 }
@@ -42,7 +42,7 @@ test('Test emit', (t: Test) => {
       .then(() => {
         t.ok(ch.publish.calledOnce, 'Calls publish');
         t.deepEqual(ch.publish.getCall(0).args[2], payload, 'Publishes the payload');
-        t.ok(true, 'Returns a void promise always');
+        t.ok(true, 'Returns a undefined promise always');
       })
       .catch( (err) => {
         t.notOk(true, 'It should never blow up if the publish to rabbitmq succeeds');

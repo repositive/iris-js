@@ -133,18 +133,18 @@ export default async function setup(opts: LibOpts = defaults): Promise<IrisBacke
         return operations[1](ropts);
       }
     },
-    async request(ropts: RequestInput<Buffer>): Promise<Buffer | void> {
+    async request(ropts: RequestInput<Buffer>): Promise<Buffer | undefined> {
       if (errored) {
         return Promise.reject(new Error('Broken pipe'));
       } else {
-        return operations[0](ropts) as Promise<Buffer | void>;
+        return operations[0](ropts) as Promise<Buffer | undefined>;
       }
     },
-    async emit(eopts: EmitInput<Buffer>): Promise<void> {
+    async emit(eopts: EmitInput<Buffer>): Promise<undefined> {
       if (errored) {
         return Promise.reject(new Error('Broken pipe'));
       } else {
-        return operations[2](eopts) as Promise<void>;
+        return operations[2](eopts) as Promise<undefined>;
       }
     },
     async collect(eopts: RequestInput<Buffer>): Promise<(Buffer | RPCError)[]> {
