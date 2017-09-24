@@ -13,9 +13,9 @@ export type RegisterInput<P, R> = {
 };
 
 export interface IrisBackend {
-  request: (rq: RequestInput<Buffer>) => Promise<Buffer | void>;
+  request: (rq: RequestInput<Buffer>) => Promise<Buffer | undefined>;
   register: (re: RegisterInput<Buffer, Buffer>) => Promise<RegisterActiveContext>;
-  emit: (rq: EmitInput<Buffer>) => Promise<void>;
+  emit: (rq: EmitInput<Buffer>) => Promise<undefined>;
   collect: (rq: CollectInput<Buffer>) => Promise<(Buffer | RPCError)[]>;
 }
 
