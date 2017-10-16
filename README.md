@@ -182,7 +182,7 @@ Running the setup will return a `Promise<{backend, register, request, emit, coll
 **Server**
 ```ts
 irisSetup()
-  .then(({ register, emit }) => {
+  .then(({ backend, register, request, emit, collect }) => {
 
     return register({pattern: 'test', async handler({payload}) {
       const {times} = payload;
@@ -204,7 +204,7 @@ irisSetup()
 **Client**
 ```ts
 irisSetup()
-  .then(({ request, emit }) => {
+  .then(({ backend, register, request, emit, collect }) => {
 
     async function work() {
       const result = await request({pattern: 'test', payload: {times: 2}});
