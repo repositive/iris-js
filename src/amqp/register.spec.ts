@@ -1,7 +1,7 @@
 import * as test from 'tape';
 import {Test} from 'tape';
 import { stub, spy } from 'sinon';
-import { setupRegister } from './register';
+import { setupRegister, SetupRegisterOpts } from './register';
 import {Channel} from 'amqplib';
 
 const consumeResponse = Promise.resolve({consumerTag: 'testis'});
@@ -142,7 +142,7 @@ test('Not everything goes well in register function', (t: Test) => {
   const errorResponse = Buffer.from('{"error":"Unexpected error"}');
   async function test() {
     const pattern = 'simple.test.fails';
-    const register = await setupRegister({...libOptions, ch });
+    const register = await setupRegister({...libOptions, ch } as SetupRegisterOpts);
     const handler = () => {
       throw new Error();
     };
@@ -175,7 +175,7 @@ test('Pause register', (t: Test) => {
   async function _test() {
 
     const pattern = 'pause.register.test';
-    const register = await setupRegister({...libOptions, ch});
+    const register = await setupRegister({...libOptions, ch} as SetupRegisterOpts);
 
     const handler = stub().returns(Promise.resolve());
 
@@ -215,7 +215,7 @@ test('Not everything goes well in add function Custom', (t: Test) => {
   const customErrorResponse = Buffer.from('{"error":"Custom"}');
   async function test() {
     const pattern = 'simple.test.fails';
-    const register = await setupRegister({ ...libOptions, ch});
+    const register = await setupRegister({ ...libOptions, ch} as SetupRegisterOpts);
     const handler = () => Promise.reject(new Error('Custom'));
     await register({pattern, handler});
 
