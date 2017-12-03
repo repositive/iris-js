@@ -24,6 +24,7 @@ function _resume({
   return ch.consume(
     queueName,
     (msg: Message) => {
+      // TODO: The error handling logic should be in a different layer. Probably not in the backend one.
       function onError(err?: Error) {
         const currentRetry = msg.properties.headers.retry || 0;
         if (currentRetry < retry) {
@@ -33,6 +34,7 @@ function _resume({
             {...msg.properties, headers: {...msg.properties.headers, retry: currentRetry + 1}}
           );
         } else if (msg.properties.correlationId) {
+          console.error(err);
           return ch.publish(
             '',
             msg.properties.replyTo,
