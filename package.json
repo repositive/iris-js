@@ -39,12 +39,13 @@
   ],
   "dependencies": {
     "@types/amqplib": "0.5.3",
+    "@types/ramda": "0.24.0",
     "amqplib": "0.5.1",
     "bluebird": "3.5.0",
+    "funfix": "^6.2.2",
     "ramda": "0.24.1",
     "uuid": "3.1.0",
-    "yargs": "8.0.2",
-    "@types/ramda": "0.24.0"
+    "yargs": "8.0.2"
   },
   "devDependencies": {
     "@repositive/typescript": "1.1.2",
