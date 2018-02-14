@@ -54,13 +54,16 @@ function stream({
       ch.prefetch(10);
     })
     .then(async () => {
-      const correlationId = v4();
+      const correlationId  = v4();
       let counter = 0;
-      while (true) {
+      while (counter <= 100) {
         counter++;
-        await sleep(1000);
-        console.log('sending');
-        await ch.publish('iris', pattern, Buffer.from('HELLO'), { correlationId, headers: { eof: counter % 4 === 0 } });
+        await sleep(0);
+        //console.log('sending');
+        if (counter % 10000 === 0) {
+          console.log(`${counter / 1000}k`);
+        }
+        await ch.publish('iris', pattern, Buffer.from('HELLO'), { correlationId, headers: { eos: counter === 100 } });
       }
     });
 }
