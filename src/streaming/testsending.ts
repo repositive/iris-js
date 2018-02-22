@@ -54,17 +54,17 @@ function stream({
       ch.prefetch(10);
     })
     .then(async () => {
-      const correlationId  = v4();
-      let counter = 0;
-      while (counter <= 100) {
-        counter++;
-        await sleep(0);
-        //console.log('sending');
-        if (counter % 10000 === 0) {
-          console.log(`${counter / 1000}k`);
-        }
-        await ch.publish('iris', pattern, Buffer.from('HELLO'), { correlationId, headers: { eos: counter === 100 } });
-      }
+      Observable.interval(100)
+      .groupBy(counter => Math.floor(counter / 10) )
+      .do((group) => {
+        const correlationId = v4();
+        group.
+          do(counter => {
+            ch.publish('iris', pattern, Buffer.from('HELLO'), { correlationId, headers: { eos: counter % 10 === 0 } });
+          })
+          .subscribe();
+        })
+      .subscribe();
     });
 }
 
