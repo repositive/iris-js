@@ -1,5 +1,6 @@
 import {Observer, AnonymousSubject, Observable, Subject, Subscriber, Subscription} from 'rxjs';
 import { Channel, Message } from 'amqplib';
+import * as amqpStream from 'amqp-stream';
 import { v4 } from 'uuid';
 import { Option } from 'funfix';
 
@@ -9,6 +10,9 @@ type AMQPObservable = Observable<AMQPSubject>;
 export function setupAMQPObservable(channel: Channel, namespace = 'default') {
   return function(pattern: string): AMQPObservable {
     const queueName = `${namespace}-${pattern}`;
+
+    // Control registrations and stop when we run out of memory
+    // memoryUsage() can be handy
     const observable: Observable<Message> = Observable.create((main: Observer<Message>) => {
       channel.assertQueue(queueName)
         .then(() => {
@@ -27,13 +31,16 @@ export function setupAMQPObservable(channel: Channel, namespace = 'default') {
     .map(group => {
       const observer = new AMQPStreamObserver(channel, group.key);
       const end = new Subject();
+      console.log(`Stream starts ${group.key}`);
       const source = group
         .takeUntil(end)
         .do((imsg) => {
           channel.ack(imsg);
           if (imsg.properties.headers.eos) {
             end.next();
-            group.do(msg => channel.ack(msg));
+            console.log(`Stream end ${group.key}`);
+            // Everything that comes on a closed stream is automatically acknoledge
+            group.do(msg => channel.ack(msg)).subscribe();
           }
         })
         .map(o => o.content);

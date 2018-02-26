@@ -26,13 +26,6 @@ interface IrisStream {
   _internal: Observer<Buffer>;
 }
 
-function sleep(n: number) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve();
-    }, n);
-  });
-}
 const defaults = {
   uri: 'amqp://guest:guest@localhost',
   exchange: 'iris',
@@ -54,13 +47,13 @@ function stream({
       ch.prefetch(10);
     })
     .then(async () => {
-      Observable.interval(100)
+      Observable.interval(0)
       .groupBy(counter => Math.floor(counter / 10) )
       .do((group) => {
         const correlationId = v4();
         group.
           do(counter => {
-            ch.publish('iris', pattern, Buffer.from('HELLO'), { correlationId, headers: { eos: counter % 10 === 0 } });
+            ch.publish('iris', pattern, Buffer.from('HELLO'), { correlationId, headers: { eos: (counter + 1) % 10 === 0 } });
           })
           .subscribe();
         })
