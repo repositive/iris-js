@@ -1,6 +1,5 @@
 import {Observer, AnonymousSubject, Observable, Subject, Subscriber, Subscription} from 'rxjs';
 import { Channel, Message } from 'amqplib';
-import * as amqpStream from 'amqp-stream';
 import { v4 } from 'uuid';
 import { Option } from 'funfix';
 

@@ -15,7 +15,8 @@
     "strictNullChecks": true,
     "suppressImplicitAnyIndexErrors": true,
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "typeRoots": ["./types"]
   },
   "exclude": ["node_modules"],
   "compileOnSave": false,
