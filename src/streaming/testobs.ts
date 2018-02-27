@@ -7,7 +7,7 @@ import { inspect } from 'util';
 import * as R from 'ramda';
 import { observeOn } from 'rxjs/operator/observeOn';
 import { setImmediate } from 'timers';
-import { setupAMQPObservable } from './subjects';
+import { setupAMQPHandler } from './subjects';
 
 
 export interface SetupRegisterOpts {
@@ -51,23 +51,15 @@ function undef<T>(t: T): () => T {
   return () => t;
 }
 
-function stablishChannel(connection: Connection): Promise<IrisRegister> {
-  return toNativePromise(connection.createChannel()
-    .then(channel => setupAMQPObservable(channel)));
-}
-
-function establishConnection(): Promise<Observable<IrisRegister>> {
-  const conn = connect(defaults.uri, { durable: true, noAck: true })
+function establishConnection(): Observable<Connection> {
+  const observable = Observable.create((observer: Observer<Connection>) =>connect(defaults.uri, { durable: true, noAck: true })
   .then(connection => {
-    const connErrors = Observable.fromEvent(connection, 'error').map(err => {
-        throw err;
-      });
-    const connClosing = Observable.fromEvent(connection, 'close').map(err => {throw err; });
-    console.info('Connection established');
-    return Observable.defer(undef(stablishChannel(connection)))
-      .merge(connErrors, connClosing);
-  });
-  return toNativePromise(conn);
+    connection.on('error', (err: Error) => { observer.error([err]); });
+    connection.on('close', (err: Error) => { observer.error([err]); });
+    observer.next(connection);
+    console.log('Connection stablished');
+  }));
+  return observable;
 }
 
 function bufferToEnd<T>(): Observable<T[]> {
@@ -106,7 +98,6 @@ class ExtraObservable<T> extends Observable<T> {
 }
 
 Observable.defer(establishConnection)
-.mergeAll()
 .retryWhen((errors: Observable<any>) => {
   return errors.do((err) => {
     console.error('ERROR on amqp connection', err);
@@ -115,15 +106,8 @@ Observable.defer(establishConnection)
     console.log('Retrying connection...');
   });
 })
-.map(register => {
-  console.log('Time to register stuff');
-  register('testObservable')
-  .map(stream => {
-    stream.reduce((acc: Buffer[], buff: Buffer) => [...acc, buff], [])
-    .map(arr => Buffer.concat(arr))
-    .do((msg) => console.log(msg.toString()))
-    .subscribe();
-  })
-  .subscribe();
+.map(connection => {
+  setupAMQPHandler(connection, 'testStreaming')
+  .subscribe(console.log, console.error, () => console.log('Done!'));
 })
 .subscribe(() => console.log('Listening'), console.error, () => console.info('done'));
