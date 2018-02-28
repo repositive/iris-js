@@ -12,7 +12,6 @@
     "iris.sh"
   ],
   "scripts": {
-    "precommit": "npm run lint",
     "start": "node dist",
     "startDev": "nodemon --watch src/main --watch package.json -e ts,json -q -x 'rm -fr dist && echo \"\\n============\\nCOMPILING...\\n============\\n\\n\" && tsc --outDir dist || return 0 && node dist/main/index.js'",
     "make": "rm -fr dist && tsc",
@@ -44,6 +43,7 @@
     "bluebird": "3.5.0",
     "funfix": "^6.2.2",
     "ramda": "0.24.1",
+    "rxjs": "5.5.6",
     "uuid": "3.1.0",
     "yargs": "8.0.2"
   },
