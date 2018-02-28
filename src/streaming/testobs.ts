@@ -7,7 +7,8 @@ import { inspect } from 'util';
 import * as R from 'ramda';
 import { observeOn } from 'rxjs/operator/observeOn';
 import { setImmediate } from 'timers';
-import { setupAMQPHandler } from './subjects';
+import { setupAMQPHandler, AMQPSubject, ObserverStream } from './handler';
+import { createReadStream } from 'fs';
 
 
 export interface SetupRegisterOpts {
@@ -108,6 +109,13 @@ Observable.defer(establishConnection)
 })
 .map(connection => {
   setupAMQPHandler(connection, 'testStreaming')
+  .map((stream: AMQPSubject) => {
+    stream.do(s => {
+      const rst = createReadStream(s.toString());
+      rst.pipe(new ObserverStream(stream));
+    })
+    .subscribe();
+  })
   .subscribe(console.log, console.error, () => console.log('Done!'));
 })
 .subscribe(() => console.log('Listening'), console.error, () => console.info('done'));

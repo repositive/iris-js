@@ -2,6 +2,7 @@ import {Observer, AnonymousSubject, Observable, Subject, Subscriber, Subscriptio
 import { Channel, Message, Connection } from 'amqplib';
 import { v4 } from 'uuid';
 import { Option } from 'funfix';
+import { Writable } from 'stream';
 
 export type AMQPSubject = Subject<Buffer>;
 export type AMQPObservable = Observable<AMQPSubject>;
@@ -10,6 +11,23 @@ export interface BindOptions {
   pattern: string;
   exchange: string;
   exchangeOptions?: any;
+}
+
+export class ObserverStream extends Writable {
+
+  constructor(protected observer: Observer<Buffer>) {
+    super();
+  }
+
+  _write(chunk: Buffer, encoding: string, done: any) {
+    this.observer.next(chunk);
+    done();
+  }
+
+  _final(done: any) {
+    this.observer.complete();
+    done();
+  }
 }
 
 /**
@@ -34,6 +52,7 @@ export function queueObservable(channel: Channel, queue: string): Observable<Mes
     return channel.consume(queue, (msg: Message) => {
       // TODO Handle error responses by filtering msg.properties.headers.code
       // TODO Handle end of stream x-stream-eos = true header
+      console.log('Message received');
       observer.next(msg);
     })
     .catch(error => observer.error(error));
@@ -50,9 +69,9 @@ function isSimpleRPCMessage(o: any): o is SimpleRPCMessage {
  * This messages can be acted right away
  */
 export function handleSingleRPC(channel: Channel, input: Observable<Message>): Observable<AMQPSubject> {
-  return input.filter<Message, SimpleRPCMessage>(isSimpleRPCMessage).map(msg => {
+  return input.map(msg => {
     const correlationId = msg.properties.correlationId;
-    const observer: Observer<Buffer> = new AMQPStreamObserver(channel, correlationId);
+    const observer: Observer<Buffer> = new AMQPStreamObserver(channel, correlationId, msg.properties.replyTo);
     const observable = Observable.from([msg.content]);
     return new AnonymousSubject(observer, observable);
   });
@@ -65,7 +84,7 @@ function isStreamRPCMessage(o: any): o is StreamRPCMessage {
 }
 
 export function handleStreamRPC(channel: Channel, input: Observable<Message>): Observable<AMQPSubject> {
-  return input.filter<Message, SimpleRPCMessage>(isStreamRPCMessage).groupBy(msg => msg.properties.correlationId).map(group => {
+  return input.groupBy(msg => msg.properties.correlationId).map(group => {
     const correlationId = group.key;
     const requestQueue = `request-${correlationId}`;
     const replyQueue = `reply-${correlationId}`;
@@ -88,8 +107,16 @@ export function setupAMQPHandler(connection: Connection, pattern: string, namesp
           channel.bindQueue(queueName, 'iris', pattern);
         })
       .then(() => {
-        const subObservable = queueObservable(channel, queueName);
-        main.next(Observable.merge(handleSingleRPC(channel, subObservable), handleStreamRPC(channel, subObservable)));
+        const subObservable = queueObservable(channel, queueName)
+          .groupBy(isStreamRPCMessage)
+          .map(group => {
+            if (group.key) {
+              return handleStreamRPC(channel, group);
+            } else {
+              return handleSingleRPC(channel, group);
+            }
+          }).mergeAll();
+        main.next(subObservable);
       });
     })
     .catch(error => {
@@ -98,13 +125,25 @@ export function setupAMQPHandler(connection: Connection, pattern: string, namesp
   }).mergeAll();
 }
 
-export class AMQPStreamObserver implements Observer<Buffer> {
+export class AMQPStreamObserver extends Writable implements Observer<Buffer> {
   closed = false;
   // We handle manually the memory of this buffer. Allocate 4Kib
   private internalBuffer: Buffer = Buffer.allocUnsafe(Math.pow(2,10) * 4);
   private bufferSize: number = 0;
 
-  constructor(private channel: Channel, protected correlationId: string, protected queue = 'amq.rabbitmq.reply-to') {}
+  constructor(private channel: Channel, protected correlationId: string, protected queue: string) {
+    super();
+  }
+
+  _write(chunk: Buffer, encoding: string, callback: any) {
+    this.next(chunk);
+    callback();
+  }
+
+  _final(callback: any) {
+    this.complete();
+    callback();
+  }
 
   /**
    * Replies to the stream over rabbitmq, if the buffer size exceeds
@@ -117,10 +156,11 @@ export class AMQPStreamObserver implements Observer<Buffer> {
     this.bufferSize = this.bufferSize + written;
     if (eos || written < buffer.length) {
       // The internal buffer is full send it over and iterate to break the pending chunk
+      const payload = this.internalBuffer.slice(0, this.bufferSize);
       this.channel.publish(
         '',
         this.queue,
-        this.internalBuffer.slice(0, this.bufferSize),
+        payload,
         {
           correlationId: this.correlationId,
           headers: {
@@ -129,6 +169,8 @@ export class AMQPStreamObserver implements Observer<Buffer> {
           }
         }
       );
+
+      console.log(`Sent "${payload.toString()}" to ${this.queue} with correlation ${this.correlationId}`);
       this.bufferSize = 0;
       if (written < buffer.length) {
         this.next(buffer.slice(written), eos);
@@ -150,10 +192,7 @@ export class AMQPStreamObserver implements Observer<Buffer> {
   }
 
   complete() {
-
-    if (this.bufferSize > 0) {
-      this.next(Buffer.alloc(0), true);
-    }
+    this.next(Buffer.alloc(0), true);
     this.closed = true;
   }
 
