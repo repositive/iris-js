@@ -57,9 +57,21 @@ export default function setup(opts: LibOpts = defaults): Observable<IrisBackend>
     const observe = R.curry(setupAMQPObservable)(channel);
     const stream = R.curry(setupAMQPStreamRequest)(channel);
     return Observable.fromPromise(Promise.all([setupRequestP, setupCollectP, setupRegisterP, setupEmitP]))
+      .do(() => {
+        console.info(`Connection established`);
+      })
       .map(([request, collect, register, emit]) => ({request, collect, register, emit, observe, stream}));
   }))
   .mergeAll()
-  .retry() as any;
+  .retryWhen((errors: Observable<any>) => {
+    return errors.do((error) => {
+      console.error(`Error on AMQP connection`, error);
+      console.info(`Retrying connection in 10s`);
+    })
+    .delay(10000)
+    .do(() => {
+      console.info(`Retrying connection...`);
+    });
+  }) as any;
 
 }
