@@ -4,6 +4,8 @@ import {SetupRequestOpts, setupRequest} from './request';
 import {SetupEmitOpts, setupEmit} from './emit';
 import {RPCError} from '../errors';
 import {IrisBackend, RegisterActiveContext, RegisterInput, RequestInput, CollectInput, EmitInput} from '..';
+import { setupAMQPObservable, setupAMQPStreamRequest} from './streaming';
+import * as R from 'ramda';
 import { Observable, Observer } from 'rxjs';
 import {v4} from 'uuid';
 
@@ -52,8 +54,10 @@ export default function setup(opts: LibOpts = defaults): Observable<IrisBackend>
     const setupCollectP = setupReqP.then(req => req.collect);
     const setupRegisterP = setupRegister(options as SetupRegisterOpts);
     const setupEmitP = setupEmit(options as SetupEmitOpts);
+    const observe = R.curry(setupAMQPObservable)(channel);
+    const stream = R.curry(setupAMQPStreamRequest)(channel);
     return Observable.fromPromise(Promise.all([setupRequestP, setupCollectP, setupRegisterP, setupEmitP]))
-      .map(([request, collect, register, emit]) => ({request, collect, register, emit}));
+      .map(([request, collect, register, emit]) => ({request, collect, register, emit, observe, stream}));
   })).mergeAll() as any;
 
 }

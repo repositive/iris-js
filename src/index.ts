@@ -58,7 +58,9 @@ export default function(opts: (IrisAMQPLibOpts & {
       request,
       register,
       emit,
-      collect
+      collect,
+      observe: backend.observe,
+      stream: backend.stream
     };
   });
 }

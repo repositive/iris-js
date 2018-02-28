@@ -95,7 +95,7 @@ export function handleStreamRPC(channel: Channel, input: Observable<Message>): O
   });
 }
 
-export function setupAMQPHandler(channel: Channel, pattern: string, namespace = 'default'): AMQPObservable {
+export function setupAMQPObservable(channel: Channel, pattern: string, namespace = 'default'): AMQPObservable {
   const queueName = `${namespace}-${pattern}`;
   return Observable.create((main: Observer<Observable<AMQPSubject>>) => {
     return channel.assertQueue(queueName)
@@ -118,7 +118,7 @@ export function setupAMQPHandler(channel: Channel, pattern: string, namespace = 
   }).mergeAll();
 }
 
-export function setupAMQPRequest(channel: Channel, pattern: string): AMQPObservable {
+export function setupAMQPStreamRequest(channel: Channel, pattern: string): AMQPObservable {
   return Observable.create((main: Observer<AMQPSubject>) => {
     const correlationId = v4();
     const observer = new AMQPStreamObserver(channel, correlationId, pattern, 'iris', 'amq.rabbitmq.reply-to');
