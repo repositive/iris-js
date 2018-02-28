@@ -33,28 +33,27 @@ export class ObserverStream extends Writable {
 /**
  *  Creates a new queue, if provided it also binds the queue to an exchange
  */
-export function createQueue(connection: Connection, queue: string, _bindOptions?: BindOptions, queueOptions: any = {}): Promise<any> {
+export function createQueue(channel: Channel, queue: string, _bindOptions?: BindOptions, queueOptions: any = {}): Promise<any> {
   const bindOptions = Option.of(_bindOptions);
 
-  const result = connection.createChannel().then(channel => {
-    const createExchange = bindOptions.map(opts => channel.assertExchange(opts.exchange, opts.exchangeOptions || {})).getOrElse(Promise.resolve());
-    const createQueue = channel.assertQueue(queue, queueOptions);
-    return Promise.all([createExchange, createQueue]).then(() => {
-      return bindOptions.map(opts => channel.bindQueue(queue, opts.exchange, opts.pattern));
-    });
+  const createExchange = bindOptions.map(opts => channel.assertExchange(opts.exchange, opts.exchangeOptions || {})).getOrElse(Promise.resolve());
+  const createQueue = channel.assertQueue(queue, queueOptions);
+  return Promise.all([createExchange, createQueue]).then(() => {
+    return bindOptions.map(opts => channel.bindQueue(queue, opts.exchange, opts.pattern));
   });
-
-  return Promise.resolve(result);
 }
 
 export function queueObservable(channel: Channel, queue: string): Observable<Message> {
   return Observable.create((observer: Observer<Message>) => {
     return channel.consume(queue, (msg: Message) => {
-      // TODO Handle error responses by filtering msg.properties.headers.code
-      // TODO Handle end of stream x-stream-eos = true header
-      console.log('Message received');
-      observer.next(msg);
-    })
+      const errorCode = Option.of(msg.properties.headers.code).getOrElse(0);
+      if (errorCode === 0) {
+        observer.next(msg);
+      } else {
+        // TODO Parse serialised error here
+        observer.error(msg.content);
+      }
+    },{noAck: true})
     .catch(error => observer.error(error));
   });
 }
@@ -96,33 +95,38 @@ export function handleStreamRPC(channel: Channel, input: Observable<Message>): O
   });
 }
 
-export function setupAMQPHandler(connection: Connection, pattern: string, namespace = 'default'): AMQPObservable {
+export function setupAMQPHandler(channel: Channel, pattern: string, namespace = 'default'): AMQPObservable {
   const queueName = `${namespace}-${pattern}`;
   return Observable.create((main: Observer<Observable<AMQPSubject>>) => {
-    connection.createChannel()
-    .then(channel => {
-      return channel.assertQueue(queueName)
-        .then(() => {
-          channel.prefetch(100);
-          channel.bindQueue(queueName, 'iris', pattern);
-        })
+    return channel.assertQueue(queueName)
       .then(() => {
-        const subObservable = queueObservable(channel, queueName)
-          .groupBy(isStreamRPCMessage)
-          .map(group => {
-            if (group.key) {
-              return handleStreamRPC(channel, group);
-            } else {
-              return handleSingleRPC(channel, group);
-            }
-          }).mergeAll();
-        main.next(subObservable);
-      });
-    })
-    .catch(error => {
-      main.error(error);
+        channel.prefetch(100);
+        channel.bindQueue(queueName, 'iris', pattern);
+      })
+    .then(() => {
+      const subObservable = queueObservable(channel, queueName)
+        .groupBy(isStreamRPCMessage)
+        .map(group => {
+          if (group.key) {
+            return handleStreamRPC(channel, group);
+          } else {
+            return handleSingleRPC(channel, group);
+          }
+        }).mergeAll();
+      main.next(subObservable);
     });
   }).mergeAll();
+}
+
+export function setupAMQPRequest(channel: Channel, pattern: string): AMQPObservable {
+  return Observable.create((main: Observer<AMQPSubject>) => {
+    const correlationId = v4();
+    const observer = new AMQPStreamObserver(channel, correlationId, pattern, 'iris', 'amq.rabbitmq.reply-to');
+    const subObservable = queueObservable(channel, 'amq.rabbitmq.reply-to')
+      .filter(msg => msg.properties.correlationId === correlationId)
+      .map(msg => msg.content);
+    main.next(new AnonymousSubject(observer, subObservable));
+  });
 }
 
 export class AMQPStreamObserver extends Writable implements Observer<Buffer> {
@@ -131,7 +135,7 @@ export class AMQPStreamObserver extends Writable implements Observer<Buffer> {
   private internalBuffer: Buffer = Buffer.allocUnsafe(Math.pow(2,10) * 4);
   private bufferSize: number = 0;
 
-  constructor(private channel: Channel, protected correlationId: string, protected queue: string) {
+  constructor(private channel: Channel, protected correlationId: string, protected pattern: string, protected exchange: string = '', protected replyTo?: string) {
     super();
   }
 
@@ -158,11 +162,12 @@ export class AMQPStreamObserver extends Writable implements Observer<Buffer> {
       // The internal buffer is full send it over and iterate to break the pending chunk
       const payload = this.internalBuffer.slice(0, this.bufferSize);
       this.channel.publish(
-        '',
-        this.queue,
+        this.exchange,
+        this.pattern,
         payload,
         {
           correlationId: this.correlationId,
+          replyTo: this.replyTo,
           headers: {
             code: 0,
             'x-stream-eos': eos
@@ -170,7 +175,6 @@ export class AMQPStreamObserver extends Writable implements Observer<Buffer> {
         }
       );
 
-      console.log(`Sent "${payload.toString()}" to ${this.queue} with correlation ${this.correlationId}`);
       this.bufferSize = 0;
       if (written < buffer.length) {
         this.next(buffer.slice(written), eos);
@@ -181,8 +185,8 @@ export class AMQPStreamObserver extends Writable implements Observer<Buffer> {
   error(error: Error) {
     // TODO Serialise the error
     this.channel.publish(
-      '',
-      this.queue,
+      this.exchange,
+      this.pattern,
       Buffer.alloc(0),
       {
         correlationId: this.correlationId,

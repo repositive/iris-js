@@ -10,92 +10,25 @@ import { setImmediate } from 'timers';
 import { setupAMQPHandler, AMQPSubject, ObserverStream } from './handler';
 import { createReadStream } from 'fs';
 
-
-export interface SetupRegisterOpts {
-  ch: Channel;
-  exchange: string;
-  namespace?: string;
-}
-
-interface IrisMsg {
-  content: Buffer;
-  stream_id: string;
-  eos: boolean;
-}
-
-interface IrisStreamStart {
-  type: 'start';
-  id: string;
-  content: Observable<Buffer>;
-}
-
-type IrisStreamEvent = IrisStreamStart | IrisStreamStop;
-
-interface IrisStreamStop {
-  type: 'stop';
-  id: string;
-}
-
 const defaults = {
   uri: 'amqp://guest:guest@localhost',
   exchange: 'iris',
   _log: console
 };
 
-function toNativePromise<T>(b: Bluebird<T>): Promise<T> {
-  return b as any;
-}
-
-type IrisRegister = (pattern: string) => Observable<AnonymousSubject<Buffer>>;
-
-function undef<T>(t: T): () => T {
-  return () => t;
-}
-
-function establishConnection(): Observable<Connection> {
-  const observable = Observable.create((observer: Observer<Connection>) =>connect(defaults.uri, { durable: true, noAck: true })
+function establishConnection(): Observable<Channel> {
+  const observable = Observable.create((observer: Observer<Channel>) =>connect(defaults.uri, { durable: true, noAck: true })
   .then(connection => {
     connection.on('error', (err: Error) => { observer.error([err]); });
     connection.on('close', (err: Error) => { observer.error([err]); });
-    observer.next(connection);
-    console.log('Connection stablished');
+    connection.createChannel()
+      .then(channel => {
+        observer.next(channel);
+        console.log('Connection stablished');
+      })
+      .catch(error => observer.error(error));
   }));
   return observable;
-}
-
-function bufferToEnd<T>(): Observable<T[]> {
-  const self = this as Observable<T>;
-  return Observable.create((observer: Observer<T[]>) => {
-    const buffer: T[] = [];
-    return self.subscribe(
-      res => buffer.push(res),
-      err => observer.error(err),
-      () => {
-        observer.next(buffer);
-        observer.complete();
-      }
-    );
-  });
-}
-
-class ExtraObservable<T> extends Observable<T> {
-  bufferToEnd(): Observable<T[]> {
-    return Observable.create((observer: Observer<T[]>) => {
-      const buffer: T[] = [];
-      return this.subscribe(
-        res => buffer.push(res),
-        err => observer.error(err),
-        () => {
-          observer.next(buffer);
-          observer.complete();
-        }
-      );
-    });
-  }
-
-  static from<Z>(elem: any): ExtraObservable<Z> {
-    return new ExtraObservable(elem);
-  }
 }
 
 Observable.defer(establishConnection)
@@ -107,15 +40,11 @@ Observable.defer(establishConnection)
     console.log('Retrying connection...');
   });
 })
-.map(connection => {
-  setupAMQPHandler(connection, 'testStreaming')
+.map(channel => {
+  setupAMQPHandler(channel, 'testStreaming')
   .map((stream: AMQPSubject) => {
-    stream.do(s => {
-      const rst = createReadStream(s.toString());
-      rst.pipe(new ObserverStream(stream));
-    })
-    .subscribe();
+    stream.subscribe(console.log, console.error);
   })
-  .subscribe(console.log, console.error, () => console.log('Done!'));
+  .subscribe(() => {/**/}, console.error, () => console.log('Done!'));
 })
 .subscribe(() => console.log('Listening'), console.error, () => console.info('done'));
