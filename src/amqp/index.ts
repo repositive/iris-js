@@ -58,6 +58,8 @@ export default function setup(opts: LibOpts = defaults): Observable<IrisBackend>
     const stream = R.curry(setupAMQPStreamRequest)(channel);
     return Observable.fromPromise(Promise.all([setupRequestP, setupCollectP, setupRegisterP, setupEmitP]))
       .map(([request, collect, register, emit]) => ({request, collect, register, emit, observe, stream}));
-  })).mergeAll() as any;
+  }))
+  .mergeAll()
+  .retry() as any;
 
 }
