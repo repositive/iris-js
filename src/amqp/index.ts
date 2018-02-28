@@ -22,17 +22,18 @@ const defaults = {
 };
 
 function establishConnection(uri: string, options: any): Observable<Channel> {
-  const observable = Observable.create((observer: Observer<Channel>) =>connect(uri, options)
-  .then(connection => {
-    connection.on('error', (err: Error) => { observer.error([err]); });
-    connection.on('close', (err: Error) => { observer.error([err]); });
-    connection.createChannel()
-      .then(channel => {
-        observer.next(channel);
-        console.log('Connection stablished');
-      })
-      .catch(error => observer.error(error));
-  }));
+  const observable = Observable.create((observer: Observer<Channel>) => {
+    return connect(uri, options)
+    .then(connection => {
+      connection.on('error', (err: Error) => { observer.error([err]); });
+      connection.on('close', (err: Error) => { observer.error([err]); });
+      return connection.createChannel()
+        .then(channel => {
+          observer.next(channel);
+        });
+    })
+    .catch(error => observer.error(error));
+  });
   return observable;
 }
 
