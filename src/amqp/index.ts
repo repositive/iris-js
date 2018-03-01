@@ -13,12 +13,18 @@ export interface LibOpts {
   uri?: string;
   exchange?: string;
   namespace?: string;
+  logger?: {
+    info: (...o: any[]) => void;
+    error: (...o: any[]) => void;
+    debug: (...o: any[]) => void;
+  };
 }
 
 const defaults = {
   uri: 'amqp://guest:guest@localhost',
   exchange: 'iris',
-  namespace: 'default'
+  namespace: 'default',
+  logger: console
 };
 
 function establishConnection(uri: string, options: any): Observable<Channel> {
@@ -40,7 +46,7 @@ function establishConnection(uri: string, options: any): Observable<Channel> {
 export default function setup(opts: LibOpts = defaults): Observable<IrisBackend> {
   const _opts = {...defaults, ...opts};
   const {
-    uri, exchange
+    uri, exchange, logger
   } = _opts;
 
 
@@ -59,19 +65,19 @@ export default function setup(opts: LibOpts = defaults): Observable<IrisBackend>
     const stream = R.curry(setupAMQPStreamRequest)(channel);
     return Observable.fromPromise(Promise.all([setupRequestP, setupCollectP, setupRegisterP, setupEmitP]))
       .do(() => {
-        console.info(`Connection established`);
+        logger.info(`Connection established`);
       })
       .map(([request, collect, register, emit]) => ({request, collect, register, emit, observe, stream}));
   }))
   .mergeAll()
   .retryWhen((errors: Observable<any>) => {
     return errors.do((error) => {
-      console.error(`Error on AMQP connection`, error);
-      console.info(`Retrying connection in 10s`);
+      logger.error(`Error on AMQP connection`, error);
+      logger.info(`Retrying connection in 10s`);
     })
     .delay(10000)
     .do(() => {
-      console.info(`Retrying connection...`);
+      logger.info(`Retrying connection...`);
     });
   }) as any;
 
