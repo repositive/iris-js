@@ -6,17 +6,24 @@ export interface SetupRegisterOpts {
   ch: Channel;
   exchange: string;
   namespace?: string;
+  logger: {
+    info: (...o: any[]) => void;
+    debug: (...o: any[]) => void;
+    error: (...o: any[]) => void;
+  };
 }
 
 function _resume({
   ch,
   handler,
+  logger,
   retry,
   queueName,
   _activeContext
 }: {
   ch: Channel,
   handler: RegisterHandler<Buffer, Buffer>,
+  logger: any,
   retry: number,
   queueName: string,
   _activeContext: RegisterActiveContext
@@ -34,19 +41,21 @@ function _resume({
             {...msg.properties, headers: {...msg.properties.headers, retry: currentRetry + 1}}
           );
         } else if (msg.properties.correlationId) {
-          console.error(err);
+          logger.error(err, {queueName});
           return ch.publish(
             '',
             msg.properties.replyTo,
-            Buffer.from(JSON.stringify({error: (err && err.message) || 'Unexpected error'})),
+            Buffer.from(JSON.stringify({error: `Unexpected error on ${queueName}`})),
             {correlationId: msg.properties.correlationId, headers: {code: 1}}
           );
         }
       }
       try {
+        logger.debug(`Receiving message from ${queueName}`, {...msg.properties});
         return handler({payload: msg.content, context: _activeContext})
           .then((response?: Buffer) => {
             if (msg.properties && msg.properties.replyTo && msg.properties.correlationId) {
+              logger.debug(`Replying to message from ${queueName}`, {...msg.properties});
               return ch.publish(
                 '',
                 msg.properties.replyTo,
@@ -57,6 +66,7 @@ function _resume({
           })
           .catch(onError)
           .then(() => {
+            logger.debug(`Done with message from ${queueName}`, {...msg.properties});
             ch.ack(msg);
           });
       } catch(err) {
@@ -71,7 +81,8 @@ function _resume({
 export async function setupRegister({
   exchange,
   ch,
-  namespace = 'default'
+  namespace = 'default',
+  logger
 }: SetupRegisterOpts) {
   await ch.assertExchange(exchange, 'topic', {durable: true});
 
@@ -81,6 +92,7 @@ export async function setupRegister({
     handler,
     retry = 0
   }: RegisterInput<Buffer, Buffer>): Promise<RegisterActiveContext> {
+    logger.debug(`Creating subscription on ${pattern}`);
     const __namespace = arguments[0].namespace || namespace;
     const queueName = `${__namespace}-${pattern}`;
 
@@ -100,7 +112,7 @@ export async function setupRegister({
 
     const _pausedContext: RegisterPausedContext = {
       resume: () => {
-        return _resume({ch, handler, retry, queueName, _activeContext})
+        return _resume({ch, logger, handler, retry, queueName, _activeContext})
           .then(createContext)
           .then((res) => {
             _pause = res.pause;
@@ -122,7 +134,7 @@ export async function setupRegister({
       ch.assertQueue(queueName),
       ch.prefetch(10),
       ch.bindQueue(queueName, exchange, pattern),
-      _resume({ch, handler, retry, queueName, _activeContext})
+      _resume({ch, logger, handler, retry, queueName, _activeContext})
     ])
     .then(([q, p, b, r]) => r)
     .then(createContext)

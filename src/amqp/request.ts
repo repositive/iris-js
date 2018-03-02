@@ -9,11 +9,16 @@ export interface SetupRequestOpts {
   exchange: string;
   _setTimeout?: typeof setTimeout;
   _clearTimeout?: typeof clearTimeout;
-  _log?: typeof console;
+  logger?: {
+    info: (...o: any[]) => void;
+    debug: (...o: any[]) => void;
+    error: (...o: any[]) => void;
+  };
 }
 
 type RequestCorrelation = {
   time: any,
+  pattern: string,
   resolve: any,
   reject: any
 };
@@ -31,20 +36,23 @@ export async function setupRequest<S>({
   exchange,
   _setTimeout = setTimeout,
   _clearTimeout = clearTimeout,
-  _log = console
+  logger = console
 }: SetupRequestOpts) {
 
   const correlations: {[k: string]: RequestCorrelation | CollectCorrelation} = {};
 
   await ch.consume('amq.rabbitmq.reply-to', (msg?: Message) => {
-    const correlation = correlations[msg && msg.properties.correlationId];
+    const correlationId = msg && msg.properties.correlationId;
+    const correlation = correlations[correlationId];
     if (isRequestCorrelation(correlation)) {
+      logger.debug(`Receiving correlated message`, {correlationId, pattern: correlation.pattern});
       _clearTimeout(correlation.time);
       if (msg && msg.properties.headers.code === 0) {
         correlation.resolve(msg.content);
       } else {
         correlation.reject(new RPCError(msg && msg.content.toString()));
       }
+      logger.debug(`Done with request`, {correlationId, pattern: correlation.pattern});
     } else if(correlation) {
       if (msg && msg.properties.headers.code === 0) {
         correlation.responses.push(msg && msg.content);
@@ -61,6 +69,7 @@ export async function setupRequest<S>({
       timeout = 5000
     }: RequestInput<Buffer>): Promise<Buffer | undefined> {
 
+      logger.debug(`Starting request to "${pattern}"`);
       return new Promise<Buffer>((resolve, reject) => {
         const id  = v4();
         const content = payload ? payload : Buffer.alloc(0);
@@ -73,12 +82,13 @@ export async function setupRequest<S>({
         const time = _setTimeout(
           () => {
             delete correlations[id];
+            logger.debug(`Request to "${pattern}" timmed out after ${timeout}`);
             reject(new TimeoutError('Timeout'));
           },
           timeout
         );
 
-        correlations[id] = {time, reject, resolve};
+        correlations[id] = {time, reject, resolve, pattern};
       });
     },
 
