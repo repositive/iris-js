@@ -41,7 +41,8 @@ function fakeMessage() {
 const libOptions = {
   url: 'amqp://rabbit',
   exchange: 'rpc_exchange',
-  queue: 'test'
+  queue: 'test',
+  logger: console
 };
 
 function wait(time: number): Promise<undefined> {
