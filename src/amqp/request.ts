@@ -69,10 +69,10 @@ export async function setupRequest<S>({
       timeout = 5000
     }: RequestInput<Buffer>): Promise<Buffer | undefined> {
 
-      logger.debug(`Starting request to "${pattern}"`);
       return new Promise<Buffer>((resolve, reject) => {
         const id  = v4();
         const content = payload ? payload : Buffer.alloc(0);
+        logger.debug(`Starting request`, {correlationId: id, pattern});
         ch.publish(exchange, pattern, content, {
           correlationId: id,
           replyTo: 'amq.rabbitmq.reply-to',
@@ -100,6 +100,7 @@ export async function setupRequest<S>({
 
       return new Promise<(Buffer | RPCError)[]>((resolve, reject) => {
         const id  = v4();
+        logger.debug(`Starting collect`, {correlationId: id, pattern});
         const content = payload ? payload : Buffer.alloc(0);
         ch.publish(exchange, pattern, content, {
           correlationId: id,
