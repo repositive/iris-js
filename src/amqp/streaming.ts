@@ -1,4 +1,4 @@
-import {Observer, AnonymousSubject, Observable, Subject, Subscriber, Subscription} from 'rxjs';
+import {Observer, AnonymousSubject, Observable, Subject} from 'rxjs-compat';
 import { Channel, Message, Connection } from 'amqplib';
 import { v4 } from 'uuid';
 import { Option } from 'funfix';
