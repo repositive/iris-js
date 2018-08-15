@@ -140,7 +140,7 @@ test('Register retries', (t: Test) => {
 test('Not everything goes well in register function', (t: Test) => {
   const ch = mockChannel();
   const expectedResponse = Buffer.from('{}');
-  const errorResponse = Buffer.from('{"error":"Unexpected error"}');
+  const errorResponse = Buffer.from('{"error":"Unexpected error on default-simple.test.fails"}');
   async function test() {
     const pattern = 'simple.test.fails';
     const register = await setupRegister({...libOptions, ch } as SetupRegisterOpts);

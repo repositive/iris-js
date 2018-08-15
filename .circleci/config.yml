@@ -1,0 +1,49 @@
+version: 2
+
+workflows:
+  version: 2
+  test_and_release:
+    jobs:
+      - test_and_make
+      - release:
+          filters:
+            branches:
+              only:
+                - master
+          requires:
+            - test_and_make
+
+jobs:
+  test_and_make:
+    docker:
+      - image: circleci/node:10
+    steps:
+      - checkout
+      - restore_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+      - run: sudo npm install -g npm@latest
+      - run: npm install
+      - save_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+          paths:
+            - ./node_modules
+      - run: npm run make
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run report-coverage
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
+            - node_modules
+            - tag.txt
+  release:
+    docker:
+      - image: circleci/node:10
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: publish package
+          command: |
+            npm publish --access public

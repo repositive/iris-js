@@ -42,10 +42,11 @@ function _resume({
           );
         } else if (msg.properties.correlationId) {
           logger.error(err, {queueName});
+          const error = err && err.message ? err.message : `Unexpected error on ${queueName}`;
           return ch.publish(
             '',
             msg.properties.replyTo,
-            Buffer.from(JSON.stringify({error: `Unexpected error on ${queueName}`})),
+            Buffer.from(JSON.stringify({error})),
             {correlationId: msg.properties.correlationId, headers: {code: 1}}
           );
         }

@@ -6,7 +6,7 @@ import {RPCError} from '../errors';
 import {IrisBackend, RegisterActiveContext, RegisterInput, RequestInput, CollectInput, EmitInput} from '..';
 import { setupAMQPObservable, setupAMQPStreamRequest} from './streaming';
 import * as R from 'ramda';
-import { Observable, Observer } from 'rxjs';
+import { Observable, Observer } from 'rxjs-compat';
 import {v4} from 'uuid';
 
 export interface LibOpts {
