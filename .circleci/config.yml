@@ -27,7 +27,6 @@ jobs:
           key: dependency-cache-{{ checksum "package.json" }}
           paths:
             - ./node_modules
-      - run: echo "$(git rev-parse --short HEAD)" > tag.txt
       - run: npm run make
       - run: npm run lint
       - run: npm run test
