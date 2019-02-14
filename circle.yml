@@ -7,7 +7,7 @@ dependencies:
     - echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
   override:
     - npm install
-    - npm run make
+    - npm run compile
 
 test:
   override:
