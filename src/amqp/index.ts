@@ -4,155 +4,81 @@ import {SetupRequestOpts, setupRequest} from './request';
 import {SetupEmitOpts, setupEmit} from './emit';
 import {RPCError} from '../errors';
 import {IrisBackend, RegisterActiveContext, RegisterInput, RequestInput, CollectInput, EmitInput} from '..';
-
+import { setupAMQPObservable, setupAMQPStreamRequest} from './streaming';
+import * as R from 'ramda';
+import { Observable, Observer } from 'rxjs';
 import {v4} from 'uuid';
 
 export interface LibOpts {
   uri?: string;
   exchange?: string;
-  registrations?: {[k: string]: RegisterInput<Buffer, Buffer>};
   namespace?: string;
-  _setupRequest?: typeof setupRequest;
-  _setupRegister?: typeof setupRegister;
-  _setupEmit?: typeof setupEmit;
-  _connect?: typeof connect;
-  _restartConnection?: typeof restartConnection;
-  _log?: typeof console;
-}
-
-export function restartConnection({
-  opts,
-  timeout = 100,
-  attempt = 0,
-  _setup = setup,
-  _setTimeout = setTimeout
-}: {
-  opts: LibOpts,
-  timeout?: number,
-  attempt?: number,
-  _setup?: typeof setup,
-  _setTimeout?: typeof setTimeout
-}) {
-  return new Promise((resolve, reject) => {
-    const _log = opts._log || console;
-    const _restartConnection = opts._restartConnection || restartConnection;
-
-    _log.info(`Retrying connection in ${attempt * timeout}ms`);
-    _setTimeout(
-      () => {
-        resolve(_setup(opts).catch((innerErr: Error) => {
-          return _restartConnection({opts, timeout, _setup, attempt: attempt <= 100 ? attempt + 10 : attempt});
-        }));
-      },
-      attempt * timeout
-    );
-  });
+  logger?: {
+    info: (...o: any[]) => void;
+    error: (...o: any[]) => void;
+    debug: (...o: any[]) => void;
+  };
 }
 
 const defaults = {
   uri: 'amqp://guest:guest@localhost',
   exchange: 'iris',
   namespace: 'default',
-  registrations: {},
-  _setupRequest: setupRequest,
-  _setupRegister: setupRegister,
-  _setupEmit: setupEmit,
-  _connect: connect,
-  _restartConnection: restartConnection,
-  _log: console
+  logger: console
 };
 
-export default async function setup(opts: LibOpts = defaults): Promise<IrisBackend> {
+function establishConnection(uri: string, options: any): Observable<Channel> {
+  const observable = Observable.create((observer: Observer<Channel>) => {
+    return connect(uri, options)
+    .then(connection => {
+      connection.on('error', (err: Error) => { observer.error([err]); });
+      connection.on('close', (err: Error) => { observer.error([err]); });
+      return connection.createChannel()
+        .then(channel => {
+          observer.next(channel);
+        });
+    })
+    .catch(error => observer.error(error));
+  });
+  return observable;
+}
+
+export default function setup(opts: LibOpts = defaults): Observable<IrisBackend> {
   const _opts = {...defaults, ...opts};
   const {
-    uri, exchange,
-    registrations,
-    _setupRequest,
-    _setupRegister,
-    _setupEmit, _connect,
-    _restartConnection, _log
+    uri, exchange, logger
   } = _opts;
 
+
   const common_options = {durable: true, noAck: true};
-  const conn = await _connect(uri, common_options);
 
-  const channel = await conn.createChannel();
+  return Observable.defer(() => establishConnection(uri, common_options).map(channel => {
+    channel.setMaxListeners(Infinity);
+    const options = {ch: channel, ..._opts};
 
-  channel.setMaxListeners(Infinity);
-
-  const options = {ch: channel, ..._opts};
-
-  const setupReqP = _setupRequest(options as SetupRequestOpts);
-  const operations = await Promise.all([
-    setupReqP.then(req => req.request),
-    _setupRegister(options as SetupRegisterOpts),
-    _setupEmit(options as SetupEmitOpts),
-    setupReqP.then(req => req.collect)
-  ]);
-
-  let errored = false;
-
-  function onError(error: Error) {
-    if (!errored) {
-      errored = true;
-      _log.warn(`Connection errored...`);
-
-      _restartConnection({opts: _opts}).then(({register, request, emit, collect}) => {
-        operations[0] = request;
-        operations[1] = register;
-        operations[2] = emit;
-        operations[3] = collect;
-        errored = false;
-        _log.info('Connection recovered');
+    const setupReqP = setupRequest(options as SetupRequestOpts);
+    const setupRequestP = setupReqP.then(req => req.request);
+    const setupCollectP = setupReqP.then(req => req.collect);
+    const setupRegisterP = setupRegister(options as SetupRegisterOpts);
+    const setupEmitP = setupEmit(options as SetupEmitOpts);
+    const observe = R.curry(setupAMQPObservable)(channel);
+    const stream = R.curry(setupAMQPStreamRequest)(channel);
+    return Observable.fromPromise(Promise.all([setupRequestP, setupCollectP, setupRegisterP, setupEmitP]))
+      .do(() => {
+        logger.info(`Connection established`);
       })
-      .catch((err) => {
-        _log.error(err);
-        /* This promise should never reject */
-      });
-    }
-  }
+      .map(([request, collect, register, emit]) => ({request, collect, register, emit, observe, stream}));
+  }))
+  .mergeAll()
+  .retryWhen((errors: Observable<any>) => {
+    return errors.do((error) => {
+      logger.error(`Error on AMQP connection`, error);
+      logger.info(`Retrying connection in 10s`);
+    })
+    .delay(10000)
+    .do(() => {
+      logger.info(`Retrying connection...`);
+    });
+  }) as any;
 
-  conn.on('error', onError);
-  conn.on('close', onError);
-
-  // If the connection failed there may be subscriptions from previous connection, so add them again.
-  await Promise.all(Object.keys(registrations).map(k => {
-    const registration = registrations[k];
-    return operations[1](registration);
-  }));
-
-  return {
-    async register(ropts: RegisterInput<Buffer, Buffer>): Promise<RegisterActiveContext> {
-      const id = `${ropts.pattern}-${ropts.namespace || ''}`;
-      if (!registrations[id]) {
-        registrations[id] = ropts;
-      }
-      if (errored) {
-        return Promise.reject(new Error('Broken Pipe'));
-      } else {
-        return operations[1](ropts);
-      }
-    },
-    async request(ropts: RequestInput<Buffer>): Promise<Buffer | undefined> {
-      if (errored) {
-        return Promise.reject(new Error('Broken pipe'));
-      } else {
-        return operations[0](ropts) as Promise<Buffer | undefined>;
-      }
-    },
-    async emit(eopts: EmitInput<Buffer>): Promise<undefined> {
-      if (errored) {
-        return Promise.reject(new Error('Broken pipe'));
-      } else {
-        return operations[2](eopts) as Promise<undefined>;
-      }
-    },
-    async collect(eopts: RequestInput<Buffer>): Promise<(Buffer | RPCError)[]> {
-      if (errored) {
-        return Promise.reject(new Error('Broken pipe'));
-      } else {
-        return operations[3](eopts) as Promise<(Buffer | RPCError)[]>;
-      }
-    }
-  };
 }

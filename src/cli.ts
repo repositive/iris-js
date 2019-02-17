@@ -1,5 +1,6 @@
 import * as yargs from 'yargs';
 import {IrisAMQP} from '.';
+import { Observable } from 'rxjs';
 
 async function handler() {
   const yarg = yargs
@@ -40,11 +41,21 @@ async function handler() {
   if (!pattern) {
     yarg.showHelp();
   } else {
-    const iris = await IrisAMQP({uri, exchange});
-    const res =  await iris.request( {pattern, timeout, payload: payload ? Buffer.from(payload) : Buffer.alloc(0)});
-
-    console.log(res && res.toString());
-    process.exit(0);
+    IrisAMQP({uri, exchange})
+    .map(iris => {
+      return Observable.fromPromise(iris.request( {pattern, timeout, payload: payload ? Buffer.from(payload) : Buffer.alloc(0)}));
+    }).mergeAll()
+    .subscribe(
+      (res) => {
+        console.log(res && res.toString());
+        process.exit(0);
+      },
+      (error) => {
+        console.error(error);
+        process.exit(1);
+      },
+      () => {/**/}
+    );
   }
 }
 

@@ -5,6 +5,7 @@ import {is, identity, ifElse, map, curry, pipeP, lensProp, over} from 'ramda';
 import {RPCError} from './errors';
 export const IrisAMQP = _IrisAMQP;
 import {RegisterActiveContext, RegisterHandler, Iris, RegisterInput, EmitInput, CollectInput,RequestInput} from './types';
+import { Observable } from 'rxjs';
 export * from './types';
 export * from './utils';
 
@@ -24,40 +25,42 @@ const parseArray = toPromise(map(ifElse(is(Buffer), parse, identity))) as any;
 
 const transformHandler = toPromise(over(lensHandler, (handler: RegisterHandler<any, any>) => pipeP(parsePayload, handler, serializeP)));
 
-export default async function(opts: (IrisAMQPLibOpts & {
+export default function(opts: (IrisAMQPLibOpts & {
   _IrisAMQP?: typeof IrisAMQP
-})): Promise<Iris> {
+})): Observable<Iris> {
   const __IrisAMQP = opts._IrisAMQP || IrisAMQP;
 
-  const backend = await __IrisAMQP(opts);
+  return __IrisAMQP(opts).map(backend => {
+    const request: <T, R>(o: RequestInput<T>) => Promise<R | undefined> = pipeP(
+      serializePayload,
+      backend.request,
+      parse
+    );
 
-  const request: <T, R>(o: RequestInput<T>) => Promise<R | undefined> = pipeP(
-    serializePayload,
-    backend.request,
-    parse
-  );
+    const register: <T, R> (o: RegisterInput<T, R>) => Promise<RegisterActiveContext> = pipeP(
+      transformHandler,
+      backend.register
+    );
 
-  const register: <T, R> (o: RegisterInput<T, R>) => Promise<RegisterActiveContext> = pipeP(
-    transformHandler,
-    backend.register
-  );
+    const emit: <T>(o: EmitInput<T>) => Promise<undefined> = pipeP(
+      serializePayload,
+      backend.emit
+    );
 
-  const emit: <T>(o: EmitInput<T>) => Promise<undefined> = pipeP(
-    serializePayload,
-    backend.emit
-  );
+    const collect: <T, R> (o: CollectInput<T>) => Promise<(R | RPCError)[]> = pipeP(
+      serializePayload,
+      backend.collect,
+      parseArray
+    );
 
-  const collect: <T, R> (o: CollectInput<T>) => Promise<(R | RPCError)[]> = pipeP(
-    serializePayload,
-    backend.collect,
-    parseArray
-  );
-
-  return {
-    backend,
-    request,
-    register,
-    emit,
-    collect
-  };
+    return {
+      backend,
+      request,
+      register,
+      emit,
+      collect,
+      observe: backend.observe,
+      stream: backend.stream
+    };
+  });
 }
