@@ -18,7 +18,8 @@
     "lint": "tslint -c tslint.json src/**/*.ts",
     "test": "nyc --reporter lcov tape $(find dist -name '*.js' ! -name '*.example.js' ! -name 'cli.js') | tap-spec",
     "coverage": "nyc check-coverage --lines 50 --functions 30 --branches 65",
-    "report-coverage": "cat ./coverage/lcov.info | codecov"
+    "report-coverage": "cat ./coverage/lcov.info | codecov",
+    "parcel": "parcel build src/index.ts --target node --bundle-node-modules --detailed-report --experimental-scope-hoisting"
   },
   "nyc": {
     "extension": [
@@ -60,6 +61,7 @@
     "husky": "0.13.4",
     "nodemon": "1.11.0",
     "nyc": "11.0.2",
+    "parcel": "^1.11.0",
     "proxyquire": "1.8.0",
     "sinon": "2.3.5",
     "tap-spec": "4.1.1",
