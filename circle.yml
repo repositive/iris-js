@@ -34,6 +34,7 @@ jobs:
       - run: npm run test
       - run: npm run coverage
       - run: npm run report-coverage
+      - run: rm -rf dist && npm run parcel
       - store_artifacts:
           path: ./coverage
       - persist_to_workspace:
