@@ -21,7 +21,8 @@
     "report-coverage": "cat ./coverage/lcov.info | codecov",
     "parcel": "npm run parcel:lib && npm run parcel:cli",
     "parcel:lib": "parcel build src/index.ts --target node --bundle-node-modules --detailed-report --experimental-scope-hoisting --no-minify -o dist/iris-lib.js",
-    "parcel:cli": "parcel build src/cli.ts --target node --bundle-node-modules --detailed-report --experimental-scope-hoisting --no-minify -o dist/iris-cli.js"
+    "parcel:cli": "parcel build src/cli.ts --target node --bundle-node-modules --detailed-report --experimental-scope-hoisting --no-minify -o dist/iris-cli.js",
+    "prepublishOnly": "npm run compile && npm run parcel"
   },
   "nyc": {
     "extension": [
