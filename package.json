@@ -2,7 +2,7 @@
   "name": "@repositive/iris",
   "version": "1.0.0-alpha.9",
   "description": "",
-  "main": "dist/index.js",
+  "main": "dist/iris-lib.js",
   "types": "dist/index.d.ts",
   "bin": {
     "iris": "iris.sh"
@@ -18,7 +18,11 @@
     "lint": "tslint -c tslint.json src/**/*.ts",
     "test": "nyc --reporter lcov tape $(find dist -name '*.js' ! -name '*.example.js' ! -name 'cli.js') | tap-spec",
     "coverage": "nyc check-coverage --lines 50 --functions 30 --branches 65",
-    "report-coverage": "cat ./coverage/lcov.info | codecov"
+    "report-coverage": "cat ./coverage/lcov.info | codecov",
+    "parcel": "npm run parcel:lib && npm run parcel:cli",
+    "parcel:lib": "parcel build src/index.ts --target node --bundle-node-modules --detailed-report --experimental-scope-hoisting --no-minify -o dist/iris-lib.js",
+    "parcel:cli": "parcel build src/cli.ts --target node --bundle-node-modules --detailed-report --experimental-scope-hoisting --no-minify -o dist/iris-cli.js",
+    "prepublishOnly": "npm run compile && npm run parcel"
   },
   "nyc": {
     "extension": [
@@ -36,36 +40,35 @@
     "@repositive/iris",
     "service"
   ],
-  "dependencies": {
-    "@types/amqplib": "0.5.3",
-    "@types/ramda": "0.24.0",
-    "amqplib": "0.5.1",
-    "bluebird": "3.5.0",
-    "funfix": "^6.2.2",
-    "ramda": "0.24.1",
-    "rxjs": "5.5.6",
-    "uuid": "3.1.0",
-    "yargs": "8.0.2"
-  },
   "devDependencies": {
     "@repositive/typescript": "1.1.2",
+    "@types/amqplib": "0.5.3",
     "@types/bluebird": "3.5.5",
     "@types/node": "8.0.0",
     "@types/proxyquire": "1.3.27",
+    "@types/ramda": "0.24.0",
     "@types/sinon": "2.3.1",
     "@types/tape": "4.2.30",
     "@types/uuid": "3.0.0",
     "@types/yargs": "8.0.0",
+    "amqplib": "0.5.1",
+    "bluebird": "3.5.0",
     "codecov": "2.2.0",
+    "funfix": "^6.2.2",
     "husky": "0.13.4",
     "nodemon": "1.11.0",
     "nyc": "11.0.2",
+    "parcel": "^1.11.0",
     "proxyquire": "1.8.0",
+    "ramda": "0.24.1",
+    "rxjs": "5.5.6",
     "sinon": "2.3.5",
     "tap-spec": "4.1.1",
     "tape": "4.6.3",
     "tslint": "5.4.3",
     "typedoc": "0.9.0",
-    "typescript": "2.5.3"
+    "typescript": "2.5.3",
+    "uuid": "3.1.0",
+    "yargs": "^8.0.2"
   }
 }

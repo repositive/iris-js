@@ -9,4 +9,4 @@ done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 C=''
-node $DIR/dist/cli.js "$@"
+node $DIR/dist/iris-cli.js "$@"
