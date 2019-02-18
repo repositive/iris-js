@@ -19,7 +19,7 @@
     "test": "nyc --reporter lcov tape $(find dist -name '*.js' ! -name '*.example.js' ! -name 'cli.js') | tap-spec",
     "coverage": "nyc check-coverage --lines 50 --functions 30 --branches 65",
     "report-coverage": "cat ./coverage/lcov.info | codecov",
-    "parcel": "parcel build src/index.ts --target node --bundle-node-modules --detailed-report --experimental-scope-hoisting"
+    "parcel": "parcel build src/index.ts --target node --bundle-node-modules --detailed-report --experimental-scope-hoisting --no-minify"
   },
   "nyc": {
     "extension": [
