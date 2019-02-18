@@ -2,7 +2,7 @@
   "name": "@repositive/iris",
   "version": "1.0.0-alpha.9",
   "description": "",
-  "main": "dist/index.js",
+  "main": "dist/iris-lib.js",
   "types": "dist/index.d.ts",
   "bin": {
     "iris": "iris.sh"
@@ -19,7 +19,9 @@
     "test": "nyc --reporter lcov tape $(find dist -name '*.js' ! -name '*.example.js' ! -name 'cli.js') | tap-spec",
     "coverage": "nyc check-coverage --lines 50 --functions 30 --branches 65",
     "report-coverage": "cat ./coverage/lcov.info | codecov",
-    "parcel": "parcel build src/index.ts --target node --bundle-node-modules --detailed-report --experimental-scope-hoisting --no-minify"
+    "parcel": "npm run parcel:lib && npm run parcel:cli",
+    "parcel:lib": "parcel build src/index.ts --target node --bundle-node-modules --detailed-report --experimental-scope-hoisting --no-minify -o dist/iris-lib.js",
+    "parcel:cli": "parcel build src/cli.ts --target node --bundle-node-modules --detailed-report --experimental-scope-hoisting --no-minify -o dist/iris-cli.js"
   },
   "nyc": {
     "extension": [
